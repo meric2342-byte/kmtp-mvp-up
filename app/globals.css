@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* KMTP 디자인 테마 — 틸 계열 색상 등록 (Tailwind v4 방식) */
+@theme {
+  --color-primary: #1f6f78;
+  --color-primary-dark: #12525a;
+  --color-primary-light: #dceeef;
+
+  --font-sans: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic",
+    -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
+}
+
+:root {
+  --background: #f6fafa;
+  --foreground: #16363a;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
