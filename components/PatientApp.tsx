@@ -28,8 +28,8 @@ type Props = {
 type Tab = "journey" | "booking";
 
 export default function PatientApp({ account, onLogout }: Props) {
-  // 상단 탭: 내 여정 / 견적·예약·신뢰
-  const [tab, setTab] = useState<Tab>("journey");
+  // 상단 탭: 내 여정 / 견적·예약·신뢰 (처음엔 견적·예약부터)
+  const [tab, setTab] = useState<Tab>("booking");
   // 현재 단계 (1~5)
   const [step, setStep] = useState(1);
   // 사용자 선택 값
@@ -180,6 +180,7 @@ export default function PatientApp({ account, onLogout }: Props) {
                 dept={dept}
                 onPrev={() => setStep(5)}
                 onRestart={handleRestart}
+                onGoJourney={() => setTab("journey")}
               />
             )}
           </>

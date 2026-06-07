@@ -15,6 +15,7 @@ type Props = {
   dept: Department;
   onPrev: () => void;
   onRestart: () => void;
+  onGoJourney: () => void;
 };
 
 export default function StepTrust({
@@ -22,6 +23,7 @@ export default function StepTrust({
   dept,
   onPrev,
   onRestart,
+  onGoJourney,
 }: Props) {
   return (
     <div className="flex flex-col gap-6">
@@ -181,11 +183,20 @@ export default function StepTrust({
       </section>
 
       {/* 완료 메시지 */}
-      <div className="rounded-2xl bg-primary-dark px-6 py-5 text-center text-white">
+      <div className="rounded-2xl bg-primary-dark px-6 py-6 text-center text-white">
         <p className="text-lg font-bold">🎉 예약 완료!</p>
         <p className="mt-1 text-sm opacity-90">
           가격잠금 견적 → 예약 → 에스크로 예치까지 안전하게 마쳤습니다.
+          <br />
+          이제 입국부터 출국까지 여정을 실시간으로 확인하세요.
         </p>
+        <button
+          type="button"
+          onClick={onGoJourney}
+          className="mt-4 rounded-xl bg-white px-8 py-3 font-bold text-primary-dark transition-colors hover:bg-primary-light"
+        >
+          내 여정 보기 →
+        </button>
       </div>
 
       {/* 버튼 */}
@@ -200,7 +211,7 @@ export default function StepTrust({
         <button
           type="button"
           onClick={onRestart}
-          className="rounded-xl bg-primary px-8 py-3 font-bold text-white transition-colors hover:bg-primary-dark"
+          className="rounded-xl border-2 border-gray-200 px-6 py-3 text-sm font-bold text-gray-600 hover:border-primary/40"
         >
           처음부터 다시 ↻
         </button>
