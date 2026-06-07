@@ -12,6 +12,7 @@ const BRAND: Record<Role, { mark: string; name: string; sub: string }> = {
   // 에이전트/병원: KMTP 파트너 콘솔 (B2B)
   agent: { mark: "K", name: "KMTP 파트너 콘솔", sub: "에이전트" },
   hospital: { mark: "K", name: "KMTP 파트너 콘솔", sub: "병원" },
+  admin: { mark: "K", name: "KMTP 관리자 콘솔", sub: "관리자" },
 };
 
 type Props = {

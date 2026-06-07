@@ -80,6 +80,35 @@ class DriverMessageIn(BaseModel):
     content: str
 
 
+# ---- 인증/계정 ----
+class LoginIn(BaseModel):
+    login_id: str
+    password: str
+
+
+class PatientRegisterIn(BaseModel):
+    login_id: str
+    password: str
+    name: Optional[str] = None
+    nationality: Optional[str] = None
+    department: Optional[str] = None
+
+
+class AdminAccountIn(BaseModel):
+    admin_login_id: str
+    admin_password: str
+    login_id: str
+    password: str
+    role: str  # agent | hospital
+    name: Optional[str] = None
+    contact: Optional[str] = None
+
+
+class AdminAuthIn(BaseModel):
+    admin_login_id: str
+    admin_password: str
+
+
 class TransferUpdate(BaseModel):
     status: str  # scheduled / driver_arrived / boarded / completed
 
@@ -390,3 +419,134 @@ def mark_notification_read(notification_id: int):
     conn.commit()
     conn.close()
     return {"ok": True}
+
+
+# ------------------------------------------------------------
+# 인증 / 계정 관리
+# ------------------------------------------------------------
+def _account_dict(row) -> dict:
+    """DB 계정 행 → 프론트 Account 형태."""
+    return {
+        "id": row["ref_id"] or row["login_id"].upper(),
+        "loginId": row["login_id"],
+        "role": row["role"],
+        "name": row["name"],
+        "sub": row["sub"],
+    }
+
+
+def _next_id(conn, prefix: str, table: str) -> str:
+    """P001/A001/H001 식 다음 ID 생성."""
+    rows = conn.execute(f"SELECT id FROM {table}").fetchall()
+    maxn = 0
+    for r in rows:
+        v = r["id"]
+        if v and v.startswith(prefix):
+            try:
+                maxn = max(maxn, int(v[len(prefix):]))
+            except ValueError:
+                pass
+    return f"{prefix}{maxn + 1:03d}"
+
+
+def _is_admin(conn, login_id: str, password: str) -> bool:
+    row = conn.execute(
+        "SELECT * FROM accounts WHERE login_id = ? AND role = 'admin'",
+        (login_id.strip().lower(),),
+    ).fetchone()
+    return bool(row and row["password"] == password)
+
+
+@app.post("/auth/login")
+def auth_login(body: LoginIn):
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT * FROM accounts WHERE login_id = ?", (body.login_id.strip().lower(),)
+    ).fetchone()
+    conn.close()
+    if not row or row["password"] != body.password:
+        raise HTTPException(401, "아이디 또는 비밀번호가 올바르지 않습니다")
+    return _account_dict(row)
+
+
+@app.post("/auth/register/patient")
+def auth_register_patient(body: PatientRegisterIn):
+    """환자 셀프 회원가입 (누구나 가능)."""
+    lid = body.login_id.strip().lower()
+    if not lid or len(body.password) < 4:
+        raise HTTPException(400, "아이디와 4자 이상 비밀번호가 필요합니다")
+    conn = get_conn()
+    if conn.execute("SELECT 1 FROM accounts WHERE login_id = ?", (lid,)).fetchone():
+        conn.close()
+        raise HTTPException(409, "이미 사용 중인 아이디입니다")
+    pid = _next_id(conn, "P", "patients")
+    name = body.name or f"{lid} 님"
+    conn.execute(
+        "INSERT INTO patients (id, name, nationality, department, agent_id, hospital_id) VALUES (?,?,?,?,?,?)",
+        (pid, name, body.nationality, body.department, None, None),
+    )
+    sub = " · ".join([x for x in [body.nationality, body.department] if x]) or "신규 환자"
+    conn.execute(
+        "INSERT INTO accounts (login_id, password, role, name, sub, ref_id, created_at) VALUES (?,?,?,?,?,?,?)",
+        (lid, body.password, "patient", name, sub, pid, _now_iso()),
+    )
+    conn.commit()
+    row = conn.execute("SELECT * FROM accounts WHERE login_id = ?", (lid,)).fetchone()
+    conn.close()
+    return _account_dict(row)
+
+
+@app.post("/auth/accounts")
+def admin_create_account(body: AdminAccountIn):
+    """관리자만 에이전트/병원 계정 생성."""
+    conn = get_conn()
+    if not _is_admin(conn, body.admin_login_id, body.admin_password):
+        conn.close()
+        raise HTTPException(403, "관리자 권한이 필요합니다")
+    if body.role not in ("agent", "hospital"):
+        conn.close()
+        raise HTTPException(400, "agent 또는 hospital만 생성할 수 있습니다")
+    lid = body.login_id.strip().lower()
+    if not lid or len(body.password) < 4:
+        conn.close()
+        raise HTTPException(400, "아이디와 4자 이상 비밀번호가 필요합니다")
+    if conn.execute("SELECT 1 FROM accounts WHERE login_id = ?", (lid,)).fetchone():
+        conn.close()
+        raise HTTPException(409, "이미 사용 중인 아이디입니다")
+    name = body.name or lid
+    if body.role == "agent":
+        rid = _next_id(conn, "A", "agents")
+        conn.execute(
+            "INSERT INTO agents (id, agency_name, contact) VALUES (?,?,?)",
+            (rid, name, body.contact),
+        )
+    else:
+        rid = _next_id(conn, "H", "hospitals")
+        conn.execute(
+            "INSERT INTO hospitals (id, name, contact) VALUES (?,?,?)",
+            (rid, name, body.contact),
+        )
+    conn.execute(
+        "INSERT INTO accounts (login_id, password, role, name, sub, ref_id, created_at) VALUES (?,?,?,?,?,?,?)",
+        (lid, body.password, body.role, name, name, rid, _now_iso()),
+    )
+    conn.commit()
+    row = conn.execute("SELECT * FROM accounts WHERE login_id = ?", (lid,)).fetchone()
+    conn.close()
+    return _account_dict(row)
+
+
+@app.post("/auth/accounts/list")
+def admin_list_accounts(body: AdminAuthIn):
+    """관리자만 전체 계정 목록 조회."""
+    conn = get_conn()
+    if not _is_admin(conn, body.admin_login_id, body.admin_password):
+        conn.close()
+        raise HTTPException(403, "관리자 권한이 필요합니다")
+    rows = _rows(
+        conn.execute(
+            "SELECT login_id, role, name, sub, ref_id, created_at FROM accounts ORDER BY created_at, login_id"
+        )
+    )
+    conn.close()
+    return rows

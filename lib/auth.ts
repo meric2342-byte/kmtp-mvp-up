@@ -3,7 +3,9 @@
 // patient / agent / hospital 3개 역할
 // ============================================================
 
-export type Role = "patient" | "agent" | "hospital";
+import { api } from "@/lib/api";
+
+export type Role = "patient" | "agent" | "hospital" | "admin";
 
 export type Account = {
   id: string; // 백엔드 patient/agent/hospital 식별과 연결되는 코드
@@ -39,6 +41,12 @@ export const ROLE_META: Record<
     desc: "예약 환자 도착 상태 · 진료 일정",
     tone: "border-sky-400",
   },
+  admin: {
+    label: "관리자",
+    icon: "🛠️",
+    desc: "에이전트·병원 계정 관리",
+    tone: "border-gray-400",
+  },
 };
 
 // 데모 계정 (각 역할 1개씩) — 백엔드 샘플 데이터의 id와 맞춥니다.
@@ -64,15 +72,37 @@ export const MOCK_ACCOUNTS: Account[] = [
     name: "병원 데모 계정",
     sub: "서울 메디케어 국제병원 · 국제진료센터",
   },
+  {
+    id: "ADMIN",
+    loginId: "admin",
+    role: "admin",
+    name: "관리자",
+    sub: "KMTP 운영",
+  },
 ];
 
 export const findAccount = (role: Role) =>
   MOCK_ACCOUNTS.find((a) => a.role === role) ?? null;
 
 // 아이디 + 비밀번호로 로그인 검증 → 계정 또는 null
-export function authenticate(loginId: string, password: string): Account | null {
+// 1) 데모 계정(0000)은 즉시 처리, 2) 그 외는 백엔드(/auth/login)로 검증
+export async function authenticate(
+  loginId: string,
+  password: string,
+): Promise<Account | null> {
   const id = loginId.trim().toLowerCase();
-  const account = MOCK_ACCOUNTS.find((a) => a.loginId === id);
-  if (!account || password !== DEMO_PASSWORD) return null;
-  return account;
+  const demo = MOCK_ACCOUNTS.find((a) => a.loginId === id);
+  if (demo && password === DEMO_PASSWORD) return demo;
+  try {
+    const acc = await api.auth.login(id, password);
+    return {
+      id: acc.id,
+      loginId: acc.loginId,
+      role: acc.role as Role,
+      name: acc.name,
+      sub: acc.sub,
+    };
+  } catch {
+    return null;
+  }
 }

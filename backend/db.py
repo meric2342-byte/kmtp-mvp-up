@@ -89,6 +89,16 @@ CREATE TABLE IF NOT EXISTS journey_events (
     note TEXT
 );
 
+CREATE TABLE IF NOT EXISTS accounts (
+    login_id TEXT PRIMARY KEY,
+    password TEXT NOT NULL,
+    role TEXT NOT NULL,            -- patient / agent / hospital / admin
+    name TEXT,
+    sub TEXT,
+    ref_id TEXT,                   -- 연결된 P###/A###/H### (admin은 NULL)
+    created_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS notifications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     patient_id TEXT REFERENCES patients(id),
@@ -169,6 +179,18 @@ def _seed(conn: sqlite3.Connection) -> None:
     conn.executemany(
         "INSERT INTO patients (id, name, nationality, department, agent_id, hospital_id) VALUES (?,?,?,?,?,?)",
         patients,
+    )
+
+    # 로그인 계정 (데모) — admin 포함. 비밀번호는 데모라 평문(0000)
+    accounts = [
+        ("admin", "0000", "admin", "관리자", "KMTP 운영", None),
+        ("patient", "0000", "patient", "환자 데모 계정", "몽골 · 갑상선 · 14박 일정", "P001"),
+        ("agent", "0000", "agent", "에이전트 데모 계정", "골든브릿지 메디투어", "A001"),
+        ("hospital", "0000", "hospital", "병원 데모 계정", "서울 메디케어 국제병원 · 국제진료센터", "H001"),
+    ]
+    conn.executemany(
+        "INSERT INTO accounts (login_id, password, role, name, sub, ref_id, created_at) VALUES (?,?,?,?,?,?,?)",
+        [(a[0], a[1], a[2], a[3], a[4], a[5], _iso(now)) for a in accounts],
     )
 
     # 예약 (각 환자 1건)

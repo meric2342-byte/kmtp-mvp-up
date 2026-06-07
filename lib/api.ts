@@ -12,7 +12,15 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   if (!res.ok) {
-    throw new Error(`API ${path} 실패: ${res.status}`);
+    // 백엔드 에러 메시지(detail)를 그대로 전달
+    let detail = `요청 실패 (${res.status})`;
+    try {
+      const j = await res.json();
+      if (j?.detail) detail = j.detail;
+    } catch {
+      // ignore
+    }
+    throw new Error(detail);
   }
   return res.json() as Promise<T>;
 }
@@ -130,4 +138,60 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ patient_id, content }),
     }),
+
+  // ---- 인증/계정 ----
+  auth: {
+    login: (login_id: string, password: string) =>
+      req<AuthAccount>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ login_id, password }),
+      }),
+    registerPatient: (body: {
+      login_id: string;
+      password: string;
+      name?: string;
+      nationality?: string;
+      department?: string;
+    }) =>
+      req<AuthAccount>("/auth/register/patient", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    adminCreateAccount: (body: {
+      admin_login_id: string;
+      admin_password: string;
+      login_id: string;
+      password: string;
+      role: "agent" | "hospital";
+      name?: string;
+      contact?: string;
+    }) =>
+      req<AuthAccount>("/auth/accounts", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    listAccounts: (admin_login_id: string, admin_password: string) =>
+      req<AccountRow[]>("/auth/accounts/list", {
+        method: "POST",
+        body: JSON.stringify({ admin_login_id, admin_password }),
+      }),
+  },
+};
+
+// 백엔드 계정 응답 (프론트 Account와 동일 형태)
+export type AuthAccount = {
+  id: string;
+  loginId: string;
+  role: string;
+  name: string;
+  sub: string;
+};
+
+export type AccountRow = {
+  login_id: string;
+  role: string;
+  name: string | null;
+  sub: string | null;
+  ref_id: string | null;
+  created_at: string | null;
 };

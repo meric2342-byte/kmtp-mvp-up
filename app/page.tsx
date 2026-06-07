@@ -13,11 +13,14 @@ import Login from "@/components/Login";
 import PatientApp from "@/components/PatientApp";
 import AgentApp from "@/components/AgentApp";
 import HospitalApp from "@/components/HospitalApp";
+import AdminApp from "@/components/AdminApp";
 
 export default function Home() {
   const [entered, setEntered] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
+  // 관리자 작업(계정 생성)에 필요해 로그인 시 입력한 비밀번호를 메모리에 보관
+  const [authPassword, setAuthPassword] = useState("");
 
   // 이해관계자 맵 (공통, 인트로에서 진입)
   if (showAbout) {
@@ -36,11 +39,21 @@ export default function Home() {
 
   // 로그인 전
   if (!account) {
-    return <Login onLogin={setAccount} />;
+    return (
+      <Login
+        onLogin={(acc, pw) => {
+          setAccount(acc);
+          setAuthPassword(pw);
+        }}
+      />
+    );
   }
 
   // 로그인 후 — 역할별 화면
-  const logout = () => setAccount(null);
+  const logout = () => {
+    setAccount(null);
+    setAuthPassword("");
+  };
   switch (account.role) {
     case "patient":
       return <PatientApp account={account} onLogout={logout} />;
@@ -48,5 +61,13 @@ export default function Home() {
       return <AgentApp account={account} onLogout={logout} />;
     case "hospital":
       return <HospitalApp account={account} onLogout={logout} />;
+    case "admin":
+      return (
+        <AdminApp
+          account={account}
+          adminPassword={authPassword}
+          onLogout={logout}
+        />
+      );
   }
 }
