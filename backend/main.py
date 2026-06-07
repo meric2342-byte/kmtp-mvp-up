@@ -7,6 +7,7 @@ KMTP 백엔드 — FastAPI 앱
 문서:  http://localhost:8000/docs  (자동 생성 API 문서)
 """
 
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
@@ -27,13 +28,22 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="KMTP API", version="0.1.0", lifespan=lifespan)
 
-# 프론트(localhost:3000)에서 호출할 수 있도록 CORS 허용
+# CORS 허용 출처
+# - 기본: 로컬 개발(localhost:3000) + 배포된 프론트(Vercel)
+# - 추가: 환경변수 ALLOWED_ORIGINS (콤마로 여러 개)로 더 넣을 수 있음
+DEFAULT_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://kmtp-mvp.vercel.app",
+]
+_extra = os.environ.get("ALLOWED_ORIGINS", "")
+ALLOWED_ORIGINS = DEFAULT_ORIGINS + [o.strip() for o in _extra.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
+    # Vercel 프리뷰 배포(https://kmtp-*.vercel.app)도 허용
+    allow_origin_regex=r"https://kmtp-.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
