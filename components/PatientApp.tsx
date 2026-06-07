@@ -39,6 +39,8 @@ export default function PatientApp({ account, onLogout }: Props) {
   const [slotTime, setSlotTime] = useState<string | null>(null);
   // 회복스테이 객실 (기본: 스탠다드)
   const [roomId, setRoomId] = useState<string>("standard");
+  // 에스크로 완료 후 '내 여정'으로 보낸 뒤, 이어서 No-Surprise로 진행할지 여부
+  const [flowPending, setFlowPending] = useState(false);
 
   const country = findCountry(countryId);
   const dept = findDepartment(deptId);
@@ -52,6 +54,8 @@ export default function PatientApp({ account, onLogout }: Props) {
     setSlotTime(null);
     setRoomId("standard");
     setStep(1);
+    setTab("booking");
+    setFlowPending(false);
   };
 
   return (
@@ -96,7 +100,19 @@ export default function PatientApp({ account, onLogout }: Props) {
         </div>
 
         {/* 내 여정 탭 */}
-        {tab === "journey" && <PatientJourney account={account} />}
+        {tab === "journey" && (
+          <PatientJourney
+            account={account}
+            onContinueFlow={
+              flowPending
+                ? () => {
+                    setFlowPending(false);
+                    setTab("booking");
+                  }
+                : undefined
+            }
+          />
+        )}
 
         {/* 견적·예약·신뢰 탭 (기존 5단계 흐름) */}
         {tab === "booking" && (
@@ -157,7 +173,12 @@ export default function PatientApp({ account, onLogout }: Props) {
             slotTime={slotTime}
             hospitalName={RECOMMENDED_HOSPITAL.name}
             onPrev={() => setStep(3)}
-            onNext={() => setStep(5)}
+            onNext={() => {
+              // 에스크로 완료 → 내 여정으로 이동(이어서 No-Surprise로 진행)
+              setStep(5);
+              setTab("journey");
+              setFlowPending(true);
+            }}
           />
         )}
 
@@ -168,7 +189,7 @@ export default function PatientApp({ account, onLogout }: Props) {
                 dept={dept}
                 quote={quote}
                 roomId={roomId}
-                onPrev={() => setStep(4)}
+                onPrev={() => setTab("journey")}
                 onNext={() => setStep(6)}
               />
             )}

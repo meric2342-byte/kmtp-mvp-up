@@ -21,9 +21,11 @@ const TRANSFER_LABEL: Record<string, string> = {
 
 type Props = {
   account: Account;
+  // 에스크로 완료 후 이어서 진행할 때만 전달됨 → "계속하기" 배너 표시
+  onContinueFlow?: () => void;
 };
 
-export default function PatientJourney({ account }: Props) {
+export default function PatientJourney({ account, onContinueFlow }: Props) {
   const journey = useAsync(() => api.journey(account.id), [account.id]);
   const transfers = useAsync(() => api.transfers(account.id), [account.id]);
   const appts = useAsync(
@@ -62,6 +64,26 @@ export default function PatientJourney({ account }: Props) {
           입국부터 출국까지, 지금 어디까지 진행됐는지 실시간으로 확인하세요.
         </p>
       </div>
+
+      {/* 에스크로 완료 후 이어가기 배너 */}
+      {onContinueFlow && (
+        <div className="flex flex-col gap-3 rounded-2xl bg-primary px-6 py-5 text-white sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-bold">✓ 에스크로 예치 완료</p>
+            <p className="text-sm opacity-90">
+              내 여정이 시작됐어요. 이어서 가격 일치(No-Surprise)와 신뢰 점수를
+              확인하세요.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onContinueFlow}
+            className="shrink-0 rounded-xl bg-white px-6 py-3 font-bold text-primary-dark transition-colors hover:bg-primary-light"
+          >
+            계속하기 →
+          </button>
+        </div>
+      )}
 
       <BackendNotice
         loading={journey.loading}

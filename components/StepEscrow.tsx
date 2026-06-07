@@ -198,7 +198,7 @@ export default function StepEscrow({
               : "cursor-not-allowed bg-gray-300"
           }`}
         >
-          신뢰·후기 보기 →
+          내 여정으로 →
         </button>
       </div>
     </div>
