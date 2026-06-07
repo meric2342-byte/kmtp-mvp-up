@@ -52,24 +52,46 @@ export type Department = {
   icon: string; // 이모지 아이콘
   lockType: LockType;
   desc: string; // 한 줄 설명
+  recoveryNights: number; // 표준 회복기간(박) — 회복스테이 객실 자동 매칭에 사용
 };
 
 export const DEPARTMENTS: Department[] = [
   // Full Lock — 총액 고정
-  { id: "derma", name: "피부과", icon: "✨", lockType: "full", desc: "미용·피부 시술" },
-  { id: "dental", name: "치과", icon: "🦷", lockType: "full", desc: "임플란트·교정" },
-  { id: "eye", name: "안과", icon: "👁️", lockType: "full", desc: "시력교정·백내장" },
-  { id: "checkup", name: "종합검진", icon: "🩺", lockType: "full", desc: "건강검진 패키지" },
+  { id: "derma", name: "피부과", icon: "✨", lockType: "full", desc: "미용·피부 시술", recoveryNights: 7 },
+  { id: "dental", name: "치과", icon: "🦷", lockType: "full", desc: "임플란트·교정", recoveryNights: 5 },
+  { id: "eye", name: "안과", icon: "👁️", lockType: "full", desc: "시력교정·백내장", recoveryNights: 3 },
+  { id: "checkup", name: "종합검진", icon: "🩺", lockType: "full", desc: "건강검진 패키지", recoveryNights: 2 },
 
   // Range Lock — 범위 보장 + 변동 룰
-  { id: "thyroid", name: "갑상선", icon: "🦋", lockType: "range", desc: "갑상선 결절·암" },
-  { id: "spine", name: "척추", icon: "🦴", lockType: "range", desc: "디스크·협착증" },
-  { id: "joint", name: "관절·정형외과", icon: "🦵", lockType: "range", desc: "인공관절·재건" },
+  { id: "thyroid", name: "갑상선", icon: "🦋", lockType: "range", desc: "갑상선 결절·암", recoveryNights: 14 },
+  { id: "spine", name: "척추", icon: "🦴", lockType: "range", desc: "디스크·협착증", recoveryNights: 21 },
+  { id: "joint", name: "관절·정형외과", icon: "🦵", lockType: "range", desc: "인공관절·재건", recoveryNights: 21 },
 
   // No Lock — 상담 견적
-  { id: "emergency", name: "응급의학", icon: "🚑", lockType: "none", desc: "응급·중환자" },
-  { id: "transplant", name: "장기이식", icon: "🫀", lockType: "none", desc: "신장·간 이식" },
+  { id: "emergency", name: "응급의학", icon: "🚑", lockType: "none", desc: "응급·중환자", recoveryNights: 10 },
+  { id: "transplant", name: "장기이식", icon: "🫀", lockType: "none", desc: "신장·간 이식", recoveryNights: 28 },
 ];
+
+// 환율 안내 (견적 화면 공통 문구)
+export const EXCHANGE_NOTE =
+  "표시 가격은 자국 통화 기준이며, 입국 시점의 환율 변동은 ±3% 이내에서 자동 흡수됩니다.";
+
+// 회복스테이 객실 (회복기간 동안 함께 예약되는 숙소)
+export type RoomType = {
+  id: "standard" | "deluxe" | "family";
+  name: string;
+  perNight: number; // 1박 요금(KRW)
+  desc: string;
+};
+
+export const RECOVERY_ROOMS: RoomType[] = [
+  { id: "standard", name: "스탠다드", perNight: 150000, desc: "1인 회복실 · 기본 케어" },
+  { id: "deluxe", name: "디럭스", perNight: 250000, desc: "넓은 1인실 · 간호 콜 24h" },
+  { id: "family", name: "패밀리", perNight: 400000, desc: "보호자 동반 · 2침대" },
+];
+
+export const findRoom = (id: string) =>
+  RECOVERY_ROOMS.find((r) => r.id === id) ?? RECOVERY_ROOMS[0];
 
 // 헬퍼: id로 국가/진료과 찾기
 export const findCountry = (id: string | null) =>

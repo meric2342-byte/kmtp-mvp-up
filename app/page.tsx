@@ -7,13 +7,20 @@
 // - hospital: 예약 환자 관리
 import { useState } from "react";
 import type { Account } from "@/lib/auth";
+import Intro from "@/components/Intro";
 import Login from "@/components/Login";
 import PatientApp from "@/components/PatientApp";
 import AgentApp from "@/components/AgentApp";
 import HospitalApp from "@/components/HospitalApp";
 
 export default function Home() {
+  const [entered, setEntered] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
+
+  // 공통 첫 화면 (인트로/랜딩)
+  if (!entered) {
+    return <Intro onStart={() => setEntered(true)} />;
+  }
 
   // 로그인 전
   if (!account) {

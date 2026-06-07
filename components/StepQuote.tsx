@@ -4,6 +4,7 @@
 // 진료과의 lockType에 따라 Full / Range / No Lock 카드를 다르게 보여줍니다.
 import {
   LOCK_META,
+  EXCHANGE_NOTE,
   formatKRW,
   type Country,
   type Department,
@@ -50,6 +51,15 @@ export default function StepQuote({
       {quote.type === "full" && <FullCard quote={quote} />}
       {quote.type === "range" && <RangeCard quote={quote} />}
       {quote.type === "none" && <NoneCard quote={quote} />}
+
+      {/* 환율 안내 + 표준 회복기간 */}
+      <div className="flex flex-col gap-2 rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
+        <p>💱 {EXCHANGE_NOTE}</p>
+        <p>
+          🌿 표준 회복기간 <b>{dept.recoveryNights}박</b> — 다음 예약 단계에서
+          회복기간에 맞는 회복스테이 객실이 함께 추천됩니다.
+        </p>
+      </div>
 
       {/* 하단 버튼 */}
       <div className="flex items-center justify-between">

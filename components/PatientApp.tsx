@@ -36,6 +36,8 @@ export default function PatientApp({ account, onLogout }: Props) {
   const [deptId, setDeptId] = useState<string | null>(null);
   const [slotDate, setSlotDate] = useState<string | null>(null);
   const [slotTime, setSlotTime] = useState<string | null>(null);
+  // 회복스테이 객실 (기본: 스탠다드)
+  const [roomId, setRoomId] = useState<string>("standard");
 
   const country = findCountry(countryId);
   const dept = findDepartment(deptId);
@@ -47,6 +49,7 @@ export default function PatientApp({ account, onLogout }: Props) {
     setDeptId(null);
     setSlotDate(null);
     setSlotTime(null);
+    setRoomId("standard");
     setStep(1);
   };
 
@@ -136,6 +139,8 @@ export default function PatientApp({ account, onLogout }: Props) {
               setSlotTime(null); // 날짜 바꾸면 시간 초기화
             }}
             onSelectTime={setSlotTime}
+            roomId={roomId}
+            onSelectRoom={setRoomId}
             onPrev={() => setStep(2)}
             onNext={() => setStep(4)}
           />

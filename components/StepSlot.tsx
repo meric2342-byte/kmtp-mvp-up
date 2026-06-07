@@ -3,7 +3,10 @@
 // 3단계: 예약 슬롯 선택 (mock 시간표에서 날짜 → 시간 고르기)
 import {
   RECOMMENDED_HOSPITAL,
+  RECOVERY_ROOMS,
   SCHEDULE,
+  findRoom,
+  formatKRW,
   type Country,
   type Department,
 } from "@/lib/data";
@@ -13,8 +16,10 @@ type Props = {
   dept: Department;
   slotDate: string | null;
   slotTime: string | null;
+  roomId: string;
   onSelectDate: (date: string) => void;
   onSelectTime: (time: string) => void;
+  onSelectRoom: (id: string) => void;
   onPrev: () => void;
   onNext: () => void;
 };
@@ -24,8 +29,10 @@ export default function StepSlot({
   dept,
   slotDate,
   slotTime,
+  roomId,
   onSelectDate,
   onSelectTime,
+  onSelectRoom,
   onPrev,
   onNext,
 }: Props) {
@@ -33,6 +40,10 @@ export default function StepSlot({
   // 선택된 날짜의 슬롯들
   const selectedDay = SCHEDULE.find((d) => d.date === slotDate) ?? null;
   const canNext = Boolean(slotDate && slotTime);
+  // 회복스테이: 진료과 표준 회복기간 × 선택 객실
+  const nights = dept.recoveryNights;
+  const room = findRoom(roomId);
+  const roomTotal = room.perNight * nights;
 
   return (
     <div className="flex flex-col gap-6">
@@ -153,10 +164,54 @@ export default function StepSlot({
         )}
       </section>
 
+      {/* 회복스테이 객실 자동 매칭 */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-700">
+            3. 회복스테이 (자동 매칭)
+          </h3>
+          <span className="rounded-full bg-primary-light px-2.5 py-0.5 text-[11px] font-semibold text-primary-dark">
+            {dept.name} 표준 {nights}박
+          </span>
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {RECOVERY_ROOMS.map((r) => {
+            const selected = r.id === roomId;
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => onSelectRoom(r.id)}
+                className={`flex flex-col gap-0.5 rounded-xl border-2 p-3 text-left transition-all ${
+                  selected
+                    ? "border-primary bg-primary-light"
+                    : "border-gray-200 bg-white hover:border-primary/40"
+                }`}
+              >
+                <span className="text-sm font-bold text-gray-800">{r.name}</span>
+                <span className="text-[11px] text-gray-500">{r.desc}</span>
+                <span className="mt-1 text-xs font-semibold text-primary">
+                  {formatKRW(r.perNight)}/박
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-2 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-2.5 text-sm">
+          <span className="text-gray-600">
+            {room.name} × {nights}박
+          </span>
+          <span className="font-bold text-primary-dark">
+            {formatKRW(roomTotal)}
+          </span>
+        </div>
+      </section>
+
       {/* 선택 요약 */}
       {canNext && (
         <div className="rounded-xl bg-primary-light px-4 py-3 text-sm text-primary-dark">
           ✅ 선택한 예약: <b>{slotDate}</b> <b>{slotTime}</b> · {h.name}
+          <br />🌿 회복스테이: <b>{room.name}</b> {nights}박 ({formatKRW(roomTotal)})
         </div>
       )}
 
