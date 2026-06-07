@@ -5,6 +5,7 @@
 import { useState } from "react";
 import type { Account } from "@/lib/auth";
 import TopBar from "@/components/TopBar";
+import PatientJourney from "@/components/PatientJourney";
 import Stepper from "@/components/Stepper";
 import StepCountryDept from "@/components/StepCountryDept";
 import StepQuote from "@/components/StepQuote";
@@ -23,7 +24,11 @@ type Props = {
   onLogout: () => void;
 };
 
+type Tab = "journey" | "booking";
+
 export default function PatientApp({ account, onLogout }: Props) {
+  // 상단 탭: 내 여정 / 견적·예약·신뢰
+  const [tab, setTab] = useState<Tab>("journey");
   // 현재 단계 (1~5)
   const [step, setStep] = useState(1);
   // 사용자 선택 값
@@ -63,13 +68,42 @@ export default function PatientApp({ account, onLogout }: Props) {
 
       {/* 본문 */}
       <main className="mx-auto max-w-3xl px-5 py-8">
-        {/* 진행 표시줄 */}
-        <div className="mb-10">
-          <Stepper current={step} />
+        {/* 탭: 내 여정 / 견적·예약·신뢰 */}
+        <div className="mb-8 flex gap-1 rounded-xl bg-gray-100 p-1">
+          {(
+            [
+              { key: "journey", label: "내 여정" },
+              { key: "booking", label: "견적·예약·신뢰" },
+            ] as { key: Tab; label: string }[]
+          ).map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={`flex-1 rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+                tab === t.key
+                  ? "bg-white text-primary-dark shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
 
-        {/* 단계별 화면 */}
-        {step === 1 && (
+        {/* 내 여정 탭 */}
+        {tab === "journey" && <PatientJourney account={account} />}
+
+        {/* 견적·예약·신뢰 탭 (기존 5단계 흐름) */}
+        {tab === "booking" && (
+          <>
+            {/* 진행 표시줄 */}
+            <div className="mb-10">
+              <Stepper current={step} />
+            </div>
+
+            {/* 단계별 화면 */}
+            {step === 1 && (
           <StepCountryDept
             countryId={countryId}
             deptId={deptId}
@@ -121,14 +155,16 @@ export default function PatientApp({ account, onLogout }: Props) {
           />
         )}
 
-        {/* 5단계: 신뢰 점수 + 검증 후기 */}
-        {step === 5 && country && dept && (
-          <StepTrust
-            country={country}
-            dept={dept}
-            onPrev={() => setStep(4)}
-            onRestart={handleRestart}
-          />
+            {/* 5단계: 신뢰 점수 + 검증 후기 */}
+            {step === 5 && country && dept && (
+              <StepTrust
+                country={country}
+                dept={dept}
+                onPrev={() => setStep(4)}
+                onRestart={handleRestart}
+              />
+            )}
+          </>
         )}
       </main>
     </div>
