@@ -96,7 +96,8 @@ CREATE TABLE IF NOT EXISTS notifications (
     channel TEXT DEFAULT 'in_app', -- 지금은 인앱 알림만 (나중에 sms/kakao)
     content TEXT,
     sent_at TEXT,
-    read INTEGER DEFAULT 0
+    read INTEGER DEFAULT 0,
+    sender TEXT DEFAULT 'KMTP 케어' -- 보낸 사람 표시 (카톡 UI용). '나'=환자 본인 발신
 );
 
 -- 나중에 값 채울 빈 테이블 --
@@ -131,6 +132,12 @@ def init_db(reset: bool = False) -> None:
     conn = get_conn()
     conn.executescript(SCHEMA)
     conn.commit()
+
+    # 가벼운 마이그레이션: notifications.sender 컬럼이 없으면 추가
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(notifications)")]
+    if "sender" not in cols:
+        conn.execute("ALTER TABLE notifications ADD COLUMN sender TEXT")
+        conn.commit()
 
     # 이미 시드되어 있으면 건너뜀
     already = conn.execute("SELECT COUNT(*) AS n FROM patients").fetchone()["n"]
@@ -206,11 +213,26 @@ def _seed(conn: sqlite3.Connection) -> None:
                 (pid, STAGES[i], _iso(occurred), None),
             )
 
-    # 알림 샘플 (P002 공항 픽업 완료 알림 1건)
+    # 카톡 메시지 샘플 (P001 데모 계정의 대화 내역)
+    p001_msgs = [
+        ("KMTP 케어", "✈️ 현지에서 출발하셨습니다. 안전한 여정 되세요!", 30),
+        ("KMTP 케어", "🛬 한국 공항에 도착하셨습니다. 픽업 기사님이 대기 중입니다.", 26),
+        ("기사 김민수", "안녕하세요! 공항 1번 출구에서 기다리고 있습니다 🚐", 25),
+        ("KMTP 케어", "🚐 공항 픽업이 완료되었습니다. 숙소로 이동합니다.", 24),
+        ("KMTP 케어", "🏨 회복스테이 체크인 완료. 편히 쉬세요.", 20),
+        ("KMTP 케어", "🏥 병원에 도착하셨습니다. 국제진료센터에서 안내해 드립니다.", 6),
+    ]
+    for sender, content, hrs in p001_msgs:
+        conn.execute(
+            "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,?,?)",
+            ("P001", "patient", "in_app", content, _iso(now - timedelta(hours=hrs)), 1, sender),
+        )
+
+    # P002 공항 픽업 완료 알림
     conn.execute(
-        "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read) VALUES (?,?,?,?,?,?)",
-        ("P002", "patient", "in_app", "공항 픽업이 완료되었습니다. 숙소로 이동합니다.",
-         _iso(now - timedelta(hours=2)), 0),
+        "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,?,?)",
+        ("P002", "patient", "in_app", "🚐 공항 픽업이 완료되었습니다. 숙소로 이동합니다.",
+         _iso(now - timedelta(hours=2)), 0, "KMTP 케어"),
     )
 
     conn.commit()

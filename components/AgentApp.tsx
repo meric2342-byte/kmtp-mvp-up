@@ -8,6 +8,7 @@ import { useAsync } from "@/lib/useAsync";
 import TopBar from "@/components/TopBar";
 import PatientCard from "@/components/PatientCard";
 import BackendNotice from "@/components/BackendNotice";
+import KakaoChat from "@/components/KakaoChat";
 
 type Props = {
   account: Account;
@@ -45,6 +46,14 @@ export default function AgentApp({ account, onLogout }: Props) {
             <PatientCard key={p.id} patient={p} role="agent" />
           ))}
         </div>
+
+        {/* 담당 환자 메시지 (카톡 스타일, 읽기 전용) */}
+        <section className="mt-8">
+          <h3 className="mb-3 text-sm font-bold text-gray-700">
+            💬 담당 환자 메시지
+          </h3>
+          <KakaoChat role="agent" showPatientLabel />
+        </section>
 
         {/* KMTP의 유치업자 지원 + 마이크로 MSO */}
         <AgentSupport />

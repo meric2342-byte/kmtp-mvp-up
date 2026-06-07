@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { Account } from "@/lib/auth";
 import TopBar from "@/components/TopBar";
 import PatientJourney from "@/components/PatientJourney";
+import KakaoChat from "@/components/KakaoChat";
 import Stepper from "@/components/Stepper";
 import StepCountryDept from "@/components/StepCountryDept";
 import StepQuote from "@/components/StepQuote";
@@ -25,7 +26,7 @@ type Props = {
   onLogout: () => void;
 };
 
-type Tab = "journey" | "booking";
+type Tab = "journey" | "booking" | "messages";
 
 export default function PatientApp({ account, onLogout }: Props) {
   // 상단 탭: 내 여정 / 견적·예약·신뢰 (처음엔 견적·예약부터)
@@ -82,6 +83,7 @@ export default function PatientApp({ account, onLogout }: Props) {
             [
               { key: "journey", label: "내 여정" },
               { key: "booking", label: "견적·예약·신뢰" },
+              { key: "messages", label: "💬 메시지" },
             ] as { key: Tab; label: string }[]
           ).map((t) => (
             <button
@@ -112,6 +114,11 @@ export default function PatientApp({ account, onLogout }: Props) {
                 : undefined
             }
           />
+        )}
+
+        {/* 메시지 탭 (카카오톡 스타일) */}
+        {tab === "messages" && (
+          <KakaoChat role="patient" patientId={account.id} allowSend />
         )}
 
         {/* 견적·예약·신뢰 탭 (기존 5단계 흐름) */}

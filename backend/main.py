@@ -72,19 +72,30 @@ class NotificationIn(BaseModel):
     recipient_role: str  # patient / agent / hospital
     content: str
     channel: str = "in_app"
+    sender: str = "KMTP 케어"
+
+
+class DriverMessageIn(BaseModel):
+    patient_id: str
+    content: str
 
 
 class TransferUpdate(BaseModel):
     status: str  # scheduled / driver_arrived / boarded / completed
 
 
-# 단계별 알림 규칙: stage -> 알림 받을 역할 목록
-NOTIFY_RULES: dict[str, list[str]] = {
-    "airport_pickup": ["patient", "agent", "hospital"],   # 공항 픽업 완료
-    "visit_hospital": ["patient", "agent", "hospital"],   # 병원행 도착
-    "surgery": ["patient", "agent", "hospital"],          # 시술 시작/종료
-    "recovery": ["patient", "agent"],                     # 진료 종료(숙소 복귀)
-    "follow_up": ["patient", "agent"],
+# 단계별 카톡 메시지: stage -> (메시지 내용, 받을 역할 목록)
+# 각 상황마다 친근한 카톡 메시지를 자동 발송합니다.
+STAGE_MESSAGES: dict[str, tuple[str, list[str]]] = {
+    "depart_home": ("✈️ 현지에서 출발하셨습니다. 안전한 여정 되세요!", ["patient", "agent"]),
+    "arrive_airport": ("🛬 한국 공항에 도착하셨습니다. 픽업 기사님이 대기 중입니다.", ["patient", "agent"]),
+    "airport_pickup": ("🚐 공항 픽업이 완료되었습니다. 숙소로 이동합니다.", ["patient", "agent", "hospital"]),
+    "checkin_stay": ("🏨 회복스테이 체크인 완료. 편히 쉬세요.", ["patient", "agent"]),
+    "visit_hospital": ("🏥 병원에 도착하셨습니다. 국제진료센터에서 안내해 드립니다.", ["patient", "agent", "hospital"]),
+    "surgery": ("🩺 시술/수술이 진행되었습니다. 회복을 도와드릴게요.", ["patient", "agent", "hospital"]),
+    "recovery": ("🌿 진료 종료 후 숙소로 복귀하셨습니다. 회복 잘 하세요!", ["patient", "agent"]),
+    "follow_up": ("📋 재진이 완료되었습니다. 경과가 양호합니다.", ["patient", "agent"]),
+    "departure": ("🛫 출국하셨습니다. 한국에서의 치료 여정을 마칩니다. 건강하세요!", ["patient", "agent"]),
 }
 
 TRANSFER_LABEL: dict[str, str] = {
@@ -211,15 +222,17 @@ def add_journey_event(body: JourneyEventIn):
     )
     event_id = cur.lastrowid
 
-    # 알림 규칙 적용
+    # 상황별 카톡 메시지 자동 발송
     created_notifications = []
-    for role in NOTIFY_RULES.get(body.stage, []):
-        content = f"[{STAGE_LABEL.get(body.stage, body.stage)}] 단계가 진행되었습니다."
-        ncur = conn.execute(
-            "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read) VALUES (?,?,?,?,?,0)",
-            (body.patient_id, role, "in_app", content, now),
-        )
-        created_notifications.append(ncur.lastrowid)
+    msg = STAGE_MESSAGES.get(body.stage)
+    if msg:
+        content, roles = msg
+        for role in roles:
+            ncur = conn.execute(
+                "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,0,?)",
+                (body.patient_id, role, "in_app", content, now, "KMTP 케어"),
+            )
+            created_notifications.append(ncur.lastrowid)
 
     conn.commit()
     conn.close()
@@ -269,10 +282,11 @@ def update_transfer(transfer_id: int, body: TransferUpdate):
         if row["type"] == "stay_to_hospital":
             roles.append("hospital")
         kind = TRANSFER_LABEL.get(row["type"], "이동")
+        sender = f"기사 {row['driver_name']}" if row["driver_name"] else "기사"
         for role in roles:
             conn.execute(
-                "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read) VALUES (?,?,?,?,?,0)",
-                (row["patient_id"], role, "in_app", f"[{kind}] 차량 탑승이 완료되었습니다.", now),
+                "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,0,?)",
+                (row["patient_id"], role, "in_app", f"🚗 [{kind}] 차량 탑승이 완료되었습니다.", now, sender),
             )
 
     conn.commit()
@@ -335,13 +349,38 @@ def list_notifications(
 def add_notification(body: NotificationIn):
     conn = get_conn()
     cur = conn.execute(
-        "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read) VALUES (?,?,?,?,?,0)",
-        (body.patient_id, body.recipient_role, body.channel, body.content, _now_iso()),
+        "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,0,?)",
+        (body.patient_id, body.recipient_role, body.channel, body.content, _now_iso(), body.sender),
     )
     conn.commit()
     nid = cur.lastrowid
     conn.close()
     return {"id": nid}
+
+
+@app.post("/messages/driver")
+def send_driver_message(body: DriverMessageIn):
+    """환자가 기사에게 카톡 메시지 전송 → 내 말풍선 저장 + 기사 자동 답장."""
+    conn = get_conn()
+    now = _now_iso()
+    # 환자 본인이 보낸 메시지 (오른쪽 말풍선, sender='나')
+    conn.execute(
+        "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,1,?)",
+        (body.patient_id, "patient", "in_app", body.content, now, "나"),
+    )
+    # 담당 기사 이름 조회 후 자동 답장
+    tr = conn.execute(
+        "SELECT driver_name FROM transfers WHERE patient_id = ? ORDER BY id DESC LIMIT 1",
+        (body.patient_id,),
+    ).fetchone()
+    driver = f"기사 {tr['driver_name']}" if tr and tr["driver_name"] else "기사"
+    conn.execute(
+        "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,0,?)",
+        (body.patient_id, "patient", "in_app", "네, 확인했습니다! 곧 도착하겠습니다 🚐", now, driver),
+    )
+    conn.commit()
+    conn.close()
+    return {"ok": True}
 
 
 @app.post("/notifications/{notification_id}/read")

@@ -63,6 +63,7 @@ export type Notification = {
   content: string;
   sent_at: string;
   read: number;
+  sender: string | null; // 보낸 사람 (카톡 UI용). "나"=본인 발신
 };
 
 export type Appointment = {
@@ -122,4 +123,11 @@ export const api = {
   },
   markRead: (id: number) =>
     req<{ ok: boolean }>(`/notifications/${id}/read`, { method: "POST" }),
+
+  // 환자가 기사에게 카톡 메시지 전송 (자동 답장 포함)
+  sendDriverMessage: (patient_id: string, content: string) =>
+    req<{ ok: boolean }>("/messages/driver", {
+      method: "POST",
+      body: JSON.stringify({ patient_id, content }),
+    }),
 };
