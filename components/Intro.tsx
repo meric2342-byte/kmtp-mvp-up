@@ -4,6 +4,7 @@
 // 신뢰 운영체계 메시지 + No-Surprise 지표 + 신뢰 3모듈
 type Props = {
   onStart: () => void;
+  onAbout: () => void;
 };
 
 const TRUST_MODULES = [
@@ -24,7 +25,7 @@ const TRUST_MODULES = [
   },
 ];
 
-export default function Intro({ onStart }: Props) {
+export default function Intro({ onStart, onAbout }: Props) {
   return (
     <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-center px-5 py-14">
       {/* 핵심 지표 배지 */}
@@ -65,14 +66,21 @@ export default function Intro({ onStart }: Props) {
         ))}
       </div>
 
-      {/* 시작하기 */}
-      <div className="mt-10 flex justify-center">
+      {/* 시작하기 / 이해관계자 맵 */}
+      <div className="mt-10 flex flex-col items-center gap-3">
         <button
           type="button"
           onClick={onStart}
           className="rounded-xl bg-primary px-10 py-4 text-lg font-bold text-white transition-colors hover:bg-primary-dark"
         >
           시작하기 →
+        </button>
+        <button
+          type="button"
+          onClick={onAbout}
+          className="text-sm font-semibold text-primary underline-offset-2 hover:underline"
+        >
+          이 플랫폼은 누구를 연결하나? (이해관계자 맵)
         </button>
       </div>
     </div>

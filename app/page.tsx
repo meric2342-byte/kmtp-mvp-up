@@ -8,6 +8,7 @@
 import { useState } from "react";
 import type { Account } from "@/lib/auth";
 import Intro from "@/components/Intro";
+import About from "@/components/About";
 import Login from "@/components/Login";
 import PatientApp from "@/components/PatientApp";
 import AgentApp from "@/components/AgentApp";
@@ -15,11 +16,22 @@ import HospitalApp from "@/components/HospitalApp";
 
 export default function Home() {
   const [entered, setEntered] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
+
+  // 이해관계자 맵 (공통, 인트로에서 진입)
+  if (showAbout) {
+    return <About onBack={() => setShowAbout(false)} />;
+  }
 
   // 공통 첫 화면 (인트로/랜딩)
   if (!entered) {
-    return <Intro onStart={() => setEntered(true)} />;
+    return (
+      <Intro
+        onStart={() => setEntered(true)}
+        onAbout={() => setShowAbout(true)}
+      />
+    );
   }
 
   // 로그인 전
