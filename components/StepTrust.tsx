@@ -11,8 +11,8 @@ import {
 } from "@/lib/data";
 
 type Props = {
-  country: Country;
-  dept: Department;
+  country?: Country | null;
+  dept?: Department | null;
   onPrev: () => void;
   onRestart: () => void;
   onGoJourney: () => void;
@@ -33,7 +33,9 @@ export default function StepTrust({
           신뢰 점수 &amp; 검증 후기
         </h2>
         <p className="mt-1 text-sm text-gray-500">
-          {RECOMMENDED_HOSPITAL.name} · {country.name} {dept.name} 환자 기준
+          {RECOMMENDED_HOSPITAL.name}
+          {country ? ` · ${country.name}` : ""}
+          {dept ? ` ${dept.name}` : ""} 환자 기준
         </p>
       </div>
 

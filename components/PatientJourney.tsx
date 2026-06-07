@@ -23,9 +23,15 @@ type Props = {
   account: Account;
   // 에스크로 완료 후 이어서 진행할 때만 전달됨 → "계속하기" 배너 표시
   onContinueFlow?: () => void;
+  // 여정이 완료되면 신뢰 화면으로 이동
+  onGoTrust?: () => void;
 };
 
-export default function PatientJourney({ account, onContinueFlow }: Props) {
+export default function PatientJourney({
+  account,
+  onContinueFlow,
+  onGoTrust,
+}: Props) {
   const journey = useAsync(() => api.journey(account.id), [account.id]);
   const transfers = useAsync(() => api.transfers(account.id), [account.id]);
   const appts = useAsync(
@@ -34,14 +40,21 @@ export default function PatientJourney({ account, onContinueFlow }: Props) {
   );
   const [posting, setPosting] = useState(false);
 
+  const LAST_STAGE = STAGES[STAGES.length - 1].key; // departure(출국)
+
   // 현재 단계를 완료 처리 → 다음 단계로 진행 (백엔드 저장 + 알림 자동 생성)
+  // 마지막 단계(출국)를 완료하면 여정 완료 → 신뢰 화면으로 이동
   const advance = async () => {
     const next = journey.data?.current_stage;
     if (!next) return;
     setPosting(true);
     try {
       await api.addJourneyEvent({ patient_id: account.id, stage: next });
-      journey.reload();
+      if (next === LAST_STAGE && onGoTrust) {
+        onGoTrust();
+      } else {
+        journey.reload();
+      }
     } finally {
       setPosting(false);
     }
@@ -158,6 +171,14 @@ export default function PatientJourney({ account, onContinueFlow }: Props) {
                   {posting
                     ? "진행 중…"
                     : `「${stageLabel(journey.data.current_stage)}」 완료 →`}
+                </button>
+              ) : onGoTrust ? (
+                <button
+                  type="button"
+                  onClick={onGoTrust}
+                  className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary-dark"
+                >
+                  여정 완료 ✓ · 신뢰 점수·후기 보기 →
                 </button>
               ) : (
                 <span className="rounded-lg bg-primary-light px-3 py-1.5 text-xs font-bold text-primary-dark">

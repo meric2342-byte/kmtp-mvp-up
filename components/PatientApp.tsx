@@ -113,6 +113,10 @@ export default function PatientApp({ account, onLogout }: Props) {
                   }
                 : undefined
             }
+            onGoTrust={() => {
+              setTab("booking");
+              setStep(6);
+            }}
           />
         )}
 
@@ -201,8 +205,8 @@ export default function PatientApp({ account, onLogout }: Props) {
               />
             )}
 
-            {/* 6단계: 신뢰 점수 + 검증 후기 */}
-            {step === 6 && country && dept && (
+            {/* 6단계: 신뢰 점수 + 검증 후기 (여정 완료로 바로 올 수도 있어 country/dept 없어도 표시) */}
+            {step === 6 && (
               <StepTrust
                 country={country}
                 dept={dept}
