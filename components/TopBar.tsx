@@ -3,6 +3,7 @@
 // 공통 상단 바 — 역할별 브랜드 표시 + 로그아웃
 // 화이트라벨 원칙: patient 화면에는 KMTP를 드러내지 않고 중립 브랜드를 씁니다.
 import type { Account, Role } from "@/lib/auth";
+import NotificationBell from "@/components/NotificationBell";
 
 // 역할별 브랜드 표기
 const BRAND: Record<Role, { mark: string; name: string; sub: string }> = {
@@ -38,6 +39,10 @@ export default function TopBar({ account, onLogout, right }: Props) {
 
         <div className="flex items-center gap-3">
           {right}
+          <NotificationBell
+            role={account.role}
+            patientId={account.role === "patient" ? account.id : undefined}
+          />
           <button
             type="button"
             onClick={onLogout}

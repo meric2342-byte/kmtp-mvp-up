@@ -33,14 +33,42 @@ type Props = {
 
 export default function PatientCard({ patient, role }: Props) {
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const journey = useAsync(() => api.journey(patient.id), [patient.id]);
   const appts = useAsync(
     () => api.appointments({ patient_id: patient.id }),
     [patient.id],
   );
+  const transfers = useAsync(() => api.transfers(patient.id), [patient.id]);
 
   const current = journey.data?.current_stage ?? null;
   const appt = appts.data?.[0] ?? null;
+  const activeTransfer =
+    transfers.data?.find((t) => t.status !== "completed") ?? null;
+
+  // 에이전트: 단계 진행 (백엔드 저장 + 알림 자동 생성)
+  const advance = async () => {
+    if (!current) return;
+    setBusy(true);
+    try {
+      await api.addJourneyEvent({ patient_id: patient.id, stage: current });
+      journey.reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // 에이전트: 픽업 상태 갱신
+  const updatePickup = async (status: string) => {
+    if (!activeTransfer) return;
+    setBusy(true);
+    try {
+      await api.updateTransfer(activeTransfer.id, status);
+      transfers.reload();
+    } finally {
+      setBusy(false);
+    }
+  };
   // 병원 화면: 환자가 병원에 도착했는지 (병원 방문 단계 완료 여부)
   const arrived = journey.data?.done_stages.includes("visit_hospital") ?? false;
 
@@ -103,6 +131,69 @@ export default function PatientCard({ patient, role }: Props) {
               currentStage={journey.data.current_stage}
               events={journey.data.events}
             />
+          )}
+
+          {/* 에이전트 전용: 단계 진행 + 픽업 진행 현황 */}
+          {role === "agent" && (
+            <div className="mt-3 flex flex-col gap-3 rounded-xl bg-gray-50 p-4">
+              {/* 단계 진행 */}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-gray-600">
+                  현재 단계: {stageLabel(current)}
+                </span>
+                {current ? (
+                  <button
+                    type="button"
+                    onClick={advance}
+                    disabled={busy}
+                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white hover:bg-primary-dark disabled:bg-gray-300"
+                  >
+                    단계 완료 →
+                  </button>
+                ) : (
+                  <span className="text-xs font-bold text-primary-dark">
+                    여정 완료 ✓
+                  </span>
+                )}
+              </div>
+
+              {/* 픽업 진행 현황 */}
+              {activeTransfer && (
+                <div className="border-t border-gray-200 pt-3">
+                  <p className="text-xs text-gray-600">
+                    🚐 픽업 · 기사 {activeTransfer.driver_name} (
+                    {activeTransfer.car_number}) · 상태{" "}
+                    <span className="font-bold">{activeTransfer.status}</span>
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => updatePickup("driver_arrived")}
+                      disabled={busy || activeTransfer.status !== "scheduled"}
+                      className="rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary-light disabled:border-gray-200 disabled:text-gray-300"
+                    >
+                      기사 도착
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updatePickup("boarded")}
+                      disabled={busy || activeTransfer.status === "completed"}
+                      className="rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary-light disabled:border-gray-200 disabled:text-gray-300"
+                    >
+                      탑승 완료
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updatePickup("completed")}
+                      disabled={busy || activeTransfer.status === "completed"}
+                      className="rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary-light disabled:border-gray-200 disabled:text-gray-300"
+                    >
+                      픽업 완료
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

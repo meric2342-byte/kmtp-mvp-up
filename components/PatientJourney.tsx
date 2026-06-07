@@ -2,11 +2,16 @@
 
 // 환자 본인의 여정 화면 — 내 일정·픽업 연락처·병원 위치/시간 + 타임라인
 // (작업 5에서 '기사에게 전화' 버튼·단계 진행·알림이 추가됩니다)
+import { useState } from "react";
 import type { Account } from "@/lib/auth";
 import { api } from "@/lib/api";
+import { STAGES } from "@/lib/journey";
 import { useAsync } from "@/lib/useAsync";
 import JourneyTimeline from "@/components/JourneyTimeline";
 import BackendNotice from "@/components/BackendNotice";
+
+const stageLabel = (key: string | null) =>
+  STAGES.find((s) => s.key === key)?.label ?? "";
 
 const TRANSFER_LABEL: Record<string, string> = {
   airport_to_stay: "공항 → 숙소",
@@ -25,6 +30,20 @@ export default function PatientJourney({ account }: Props) {
     () => api.appointments({ patient_id: account.id }),
     [account.id],
   );
+  const [posting, setPosting] = useState(false);
+
+  // 현재 단계를 완료 처리 → 다음 단계로 진행 (백엔드 저장 + 알림 자동 생성)
+  const advance = async () => {
+    const next = journey.data?.current_stage;
+    if (!next) return;
+    setPosting(true);
+    try {
+      await api.addJourneyEvent({ patient_id: account.id, stage: next });
+      journey.reload();
+    } finally {
+      setPosting(false);
+    }
+  };
 
   const appt = appts.data?.[0] ?? null;
   // 아직 안 끝난(예정/진행) 픽업을 우선 표시
@@ -79,8 +98,6 @@ export default function PatientJourney({ account }: Props) {
                   </p>
                   <p className="mt-1 text-xs text-gray-500">
                     기사 {activeTransfer.driver_name} · {activeTransfer.car_number}
-                    <br />
-                    {activeTransfer.driver_phone}
                     {activeTransfer.pickup_scheduled && (
                       <>
                         {" · 예정 "}
@@ -90,6 +107,14 @@ export default function PatientJourney({ account }: Props) {
                       </>
                     )}
                   </p>
+                  {activeTransfer.driver_phone && (
+                    <a
+                      href={`tel:${activeTransfer.driver_phone}`}
+                      className="mt-2 inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white hover:bg-primary-dark"
+                    >
+                      📞 기사에게 전화
+                    </a>
+                  )}
                 </div>
               ) : (
                 <p className="mt-2 text-sm text-gray-400">픽업 정보 없음</p>
@@ -99,7 +124,25 @@ export default function PatientJourney({ account }: Props) {
 
           {/* 타임라인 */}
           <div className="rounded-2xl border border-gray-100 bg-white p-6">
-            <h3 className="mb-4 text-sm font-bold text-gray-700">여정 단계</h3>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-700">여정 단계</h3>
+              {journey.data.current_stage ? (
+                <button
+                  type="button"
+                  onClick={advance}
+                  disabled={posting}
+                  className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary-dark disabled:bg-gray-300"
+                >
+                  {posting
+                    ? "진행 중…"
+                    : `「${stageLabel(journey.data.current_stage)}」 완료 →`}
+                </button>
+              ) : (
+                <span className="rounded-lg bg-primary-light px-3 py-1.5 text-xs font-bold text-primary-dark">
+                  여정 완료 ✓
+                </span>
+              )}
+            </div>
             <JourneyTimeline
               doneStages={journey.data.done_stages}
               currentStage={journey.data.current_stage}

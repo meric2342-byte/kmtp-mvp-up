@@ -77,6 +77,12 @@ NOTIFY_RULES: dict[str, list[str]] = {
     "follow_up": ["patient", "agent"],
 }
 
+TRANSFER_LABEL: dict[str, str] = {
+    "airport_to_stay": "공항 → 숙소",
+    "stay_to_hospital": "숙소 → 병원",
+    "hospital_to_stay": "병원 → 숙소",
+}
+
 STAGE_LABEL: dict[str, str] = {
     "depart_home": "현지 출발",
     "arrive_airport": "공항 도착",
@@ -241,11 +247,26 @@ def update_transfer(transfer_id: int, body: TransferUpdate):
         conn.execute(
             "UPDATE transfers SET status = ? WHERE id = ?", (body.status, transfer_id)
         )
-    conn.commit()
+
     row = conn.execute("SELECT * FROM transfers WHERE id = ?", (transfer_id,)).fetchone()
-    conn.close()
     if not row:
+        conn.close()
         raise HTTPException(404, "transfer not found")
+
+    # '탑승 완료(boarded)' 시 알림 생성 (가이드: 병원행 탑승 완료 → 환자·에이전트·병원)
+    if body.status == "boarded":
+        roles = ["patient", "agent"]
+        if row["type"] == "stay_to_hospital":
+            roles.append("hospital")
+        kind = TRANSFER_LABEL.get(row["type"], "이동")
+        for role in roles:
+            conn.execute(
+                "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read) VALUES (?,?,?,?,?,0)",
+                (row["patient_id"], role, "in_app", f"[{kind}] 차량 탑승이 완료되었습니다.", now),
+            )
+
+    conn.commit()
+    conn.close()
     return dict(row)
 
 
