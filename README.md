@@ -4,6 +4,9 @@
 
 🌐 **라이브 데모:** https://kmtp-mvp.vercel.app
 
+> ⬆️ **업그레이드판(통합):** 이 폴더는 Patient/Agent/Hospital **3역할 로그인 + 실시간 여정 추적 + Python(FastAPI) 백엔드**가 추가된 통합 버전입니다.
+> 프론트와 백엔드를 함께 켜야 동작합니다 — **실행법은 [`RUN.md`](./RUN.md)** 참고. 백엔드 상세는 [`backend/README.md`](./backend/README.md).
+
 ---
 
 ## ✨ 주요 기능 (5단계 흐름)
