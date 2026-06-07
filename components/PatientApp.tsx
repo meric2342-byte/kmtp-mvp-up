@@ -11,6 +11,7 @@ import StepCountryDept from "@/components/StepCountryDept";
 import StepQuote from "@/components/StepQuote";
 import StepSlot from "@/components/StepSlot";
 import StepEscrow from "@/components/StepEscrow";
+import StepNoSurprise from "@/components/StepNoSurprise";
 import StepTrust from "@/components/StepTrust";
 import {
   findCountry,
@@ -160,12 +161,24 @@ export default function PatientApp({ account, onLogout }: Props) {
           />
         )}
 
-            {/* 5단계: 신뢰 점수 + 검증 후기 */}
-            {step === 5 && country && dept && (
+            {/* 5단계: No-Surprise 증명 */}
+            {step === 5 && country && dept && quote && (
+              <StepNoSurprise
+                country={country}
+                dept={dept}
+                quote={quote}
+                roomId={roomId}
+                onPrev={() => setStep(4)}
+                onNext={() => setStep(6)}
+              />
+            )}
+
+            {/* 6단계: 신뢰 점수 + 검증 후기 */}
+            {step === 6 && country && dept && (
               <StepTrust
                 country={country}
                 dept={dept}
-                onPrev={() => setStep(4)}
+                onPrev={() => setStep(5)}
                 onRestart={handleRestart}
               />
             )}

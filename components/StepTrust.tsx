@@ -4,6 +4,7 @@
 import {
   TRUST,
   REVIEWS,
+  RECOVERY_PROGRESS,
   RECOMMENDED_HOSPITAL,
   type Country,
   type Department,
@@ -67,22 +68,22 @@ export default function StepTrust({
           </div>
         </div>
 
-        {/* 항목별 점수 바 */}
+        {/* 5축 항목별 점수 바 */}
         <div className="w-full flex-1">
           <p className="mb-3 text-sm font-bold text-gray-700">
-            KMTP 신뢰 점수 구성
+            Trust Score 5축 구성
           </p>
           <ul className="flex flex-col gap-2.5">
             {TRUST.factors.map((f) => (
               <li key={f.label}>
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-gray-700">{f.label}</span>
-                  <span className="font-bold text-primary">{f.score}</span>
+                  <span className="font-bold text-primary">{f.value}</span>
                 </div>
                 <div className="mt-1 h-2 w-full rounded-full bg-gray-100">
                   <div
                     className="h-2 rounded-full bg-primary"
-                    style={{ width: `${f.score}%` }}
+                    style={{ width: `${f.bar}%` }}
                   />
                 </div>
                 <p className="mt-0.5 text-[11px] text-gray-400">{f.desc}</p>
@@ -90,6 +91,12 @@ export default function StepTrust({
             ))}
           </ul>
         </div>
+      </div>
+
+      {/* 신뢰 점수 산출 원칙 문구 */}
+      <div className="flex flex-col gap-1.5 rounded-2xl bg-primary-light px-5 py-4 text-sm text-primary-dark">
+        <p>📊 이 점수는 광고비로 살 수 없고, 실제 거래 데이터로만 산출됩니다.</p>
+        <p>🛡️ 외부 후기는 표시하지 않고, 결제·시술이 확인된 검증 후기만 보여줍니다.</p>
       </div>
 
       {/* 검증 후기 */}
@@ -134,6 +141,43 @@ export default function StepTrust({
             </div>
           ))}
         </div>
+      </section>
+
+      {/* 회복 경과 추적 */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-gray-700">회복 경과 추적</h3>
+          <span className="rounded-full bg-primary-light px-2.5 py-0.5 text-[11px] font-semibold text-primary-dark">
+            ⌚ 웨어러블(ECG)로 모니터링
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {RECOVERY_PROGRESS.map((p) => (
+            <div
+              key={p.phase}
+              className={`rounded-2xl border p-4 text-center ${
+                p.status === "done"
+                  ? "border-primary/30 bg-white"
+                  : "border-dashed border-gray-200 bg-gray-50"
+              }`}
+            >
+              <p className="text-xs font-semibold text-gray-500">{p.phase}</p>
+              <p
+                className={`mt-1 text-base font-black ${
+                  p.status === "done" ? "text-primary" : "text-gray-400"
+                }`}
+              >
+                {p.result}
+              </p>
+              <p className="mt-1 text-[11px] leading-tight text-gray-400">
+                {p.note}
+              </p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[11px] text-gray-400">
+          시술 후 1주 / 1개월 / 3개월 만족도·합병증·재방문을 추적합니다.
+        </p>
       </section>
 
       {/* 완료 메시지 */}

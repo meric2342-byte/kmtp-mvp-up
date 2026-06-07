@@ -6,7 +6,8 @@ const STEPS = [
   { n: 2, label: "가격잠금 견적" },
   { n: 3, label: "예약 슬롯" },
   { n: 4, label: "에스크로 결제" },
-  { n: 5, label: "신뢰·후기" },
+  { n: 5, label: "No-Surprise" },
+  { n: 6, label: "신뢰·후기" },
 ];
 
 export default function Stepper({ current }: { current: number }) {

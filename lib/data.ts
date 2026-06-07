@@ -32,17 +32,79 @@ export const LOCK_META: Record<
 };
 
 // 국가(시장)
+export type Persona = {
+  age: string; // 대표 연령대
+  gender: string; // 성별
+  interest: string; // 관심 진료과
+  stay: string; // 평균 체류기간
+};
+
 export type Country = {
   id: string;
   name: string;
   flag: string; // 이모지 국기/아이콘
   note: string; // 짧은 설명
+  popularDepts: string[]; // 인기 진료과 id (앞쪽일수록 인기)
+  persona: Persona; // 대표 환자 페르소나
 };
 
 export const COUNTRIES: Country[] = [
-  { id: "cn", name: "중국", flag: "🇨🇳", note: "뷰티·피부·검진 수요 상위" },
-  { id: "mn", name: "몽골", flag: "🇲🇳", note: "갑상선·암 정밀치료 수요" },
-  { id: "me", name: "중동", flag: "🕌", note: "정형외과·척추 중증 치료" },
+  {
+    id: "cn",
+    name: "중국",
+    flag: "🇨🇳",
+    note: "뷰티·피부·검진 수요 상위",
+    popularDepts: ["derma", "checkup", "dental"],
+    persona: { age: "30대", gender: "여성", interest: "피부·미용", stay: "7박" },
+  },
+  {
+    id: "mn",
+    name: "몽골",
+    flag: "🇲🇳",
+    note: "갑상선·암 정밀치료 수요",
+    popularDepts: ["thyroid", "checkup"],
+    persona: { age: "40대", gender: "여성", interest: "갑상선", stay: "14박" },
+  },
+  {
+    id: "me",
+    name: "중동",
+    flag: "🕌",
+    note: "정형외과·척추 중증 치료",
+    popularDepts: ["joint", "spine"],
+    persona: { age: "50대", gender: "남성", interest: "관절·척추", stay: "21박" },
+  },
+  {
+    id: "jp",
+    name: "일본",
+    flag: "🇯🇵",
+    note: "미용·검진 단기 방문",
+    popularDepts: ["derma", "checkup"],
+    persona: { age: "30대", gender: "여성", interest: "미용·검진", stay: "4박" },
+  },
+  {
+    id: "vn",
+    name: "베트남",
+    flag: "🇻🇳",
+    note: "피부·성형 단기 수요",
+    popularDepts: ["derma", "eye"],
+    persona: { age: "20대", gender: "여성", interest: "피부·성형", stay: "5박" },
+  },
+  {
+    id: "ru",
+    name: "러시아·CIS",
+    flag: "🇷🇺",
+    note: "종합검진+심혈관 정밀",
+    popularDepts: ["checkup", "thyroid"],
+    persona: { age: "50대", gender: "남성", interest: "종합검진·심혈관", stay: "7박" },
+  },
+  {
+    id: "us",
+    name: "미국 교포",
+    flag: "🇺🇸",
+    note: "치과+검진 패키지",
+    popularDepts: ["dental", "checkup"],
+    persona: { age: "40대", gender: "남녀", interest: "치과·검진", stay: "6박" },
+  },
 ];
 
 // 진료과
@@ -339,22 +401,44 @@ export const SCHEDULE: DaySlots[] = [
 // 5단계 — 신뢰 점수 & 검증 후기 (mock)
 // ============================================================
 
-// 종합 신뢰 점수 (100점 만점) + 항목별 점수
+// 종합 신뢰 점수 (100점 만점) + 5축 항목별 점수
+// bar = 막대 길이(0~100, 클수록 좋음), value = 실제 표시값
+export type TrustFactor = {
+  label: string;
+  bar: number;
+  value: string;
+  desc: string;
+};
+
 export type TrustData = {
   score: number;
-  factors: { label: string; score: number; desc: string }[];
+  factors: TrustFactor[];
 };
 
 export const TRUST: TrustData = {
-  score: 92,
+  score: 94,
   factors: [
-    { label: "의료진 자격 검증", score: 98, desc: "면허·전문의 자격 100% 확인" },
-    { label: "가격 투명성", score: 95, desc: "가격잠금 견적 제공 비율" },
-    { label: "에스크로 이행률", score: 99, desc: "정상 정산 완료 비율" },
-    { label: "분쟁 해결", score: 88, desc: "평균 5일 내 해결" },
-    { label: "실제 환자 인증 후기", score: 84, desc: "에스크로 완료 환자만 작성" },
+    { label: "가격잠금 준수율", bar: 98, value: "98%", desc: "잠근 가격대로 청구된 비율" },
+    { label: "슬롯등록 성실도", bar: 95, value: "95%", desc: "예약 슬롯 실시간 동기화율" },
+    { label: "결과지표 응답률", bar: 90, value: "90%", desc: "시술 후 결과지표 회신 비율" },
+    { label: "환자 만족도", bar: 96, value: "4.8/5", desc: "검증 환자 평균 만족도" },
+    { label: "합병증율 (낮을수록 좋음)", bar: 97, value: "1.8%", desc: "동일 시술군 대비 낮은 합병증율" },
   ],
 };
+
+// 회복 경과 추적 (시술 후 1주/1개월/3개월) — mock
+export type RecoveryPoint = {
+  phase: string;
+  status: "done" | "upcoming";
+  result: string;
+  note: string;
+};
+
+export const RECOVERY_PROGRESS: RecoveryPoint[] = [
+  { phase: "1주", status: "done", result: "양호", note: "통증 경미 · 경과 정상" },
+  { phase: "1개월", status: "done", result: "양호", note: "일상 복귀 · 합병증 없음" },
+  { phase: "3개월", status: "upcoming", result: "예정", note: "최종 경과 확인 예정" },
+];
 
 // 검증 후기 (에스크로 치료 완료 환자만 작성 → '검증됨' 배지)
 export type Review = {

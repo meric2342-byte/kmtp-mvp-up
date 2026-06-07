@@ -27,6 +27,13 @@ export default function StepCountryDept({
   onNext,
 }: Props) {
   const canNext = Boolean(countryId && deptId);
+  const selectedCountry = COUNTRIES.find((c) => c.id === countryId) ?? null;
+  // 선택 국가의 인기 진료과(진료과 객체로 변환)
+  const popularDepts = selectedCountry
+    ? selectedCountry.popularDepts
+        .map((id) => DEPARTMENTS.find((d) => d.id === id))
+        .filter((d): d is (typeof DEPARTMENTS)[number] => Boolean(d))
+    : [];
 
   return (
     <div className="flex flex-col gap-8">
@@ -68,9 +75,50 @@ export default function StepCountryDept({
         </div>
       </section>
 
+      {/* 선택 국가 페르소나 + 인기 진료과 */}
+      {selectedCountry && (
+        <section className="rounded-2xl border border-primary/20 bg-primary-light/40 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-bold text-primary-dark">
+              {selectedCountry.flag} {selectedCountry.name} 대표 환자
+            </h3>
+            <span className="text-xs text-gray-500">
+              {selectedCountry.persona.age} · {selectedCountry.persona.gender} ·
+              관심 {selectedCountry.persona.interest} · 평균{" "}
+              {selectedCountry.persona.stay}
+            </span>
+          </div>
+          <p className="mt-3 mb-2 text-xs font-semibold text-gray-600">
+            이 나라에서 인기 있는 진료과
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {popularDepts.map((d) => {
+              const selected = d.id === deptId;
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => onSelectDept(d.id)}
+                  className={`flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-sm font-bold transition-all ${
+                    selected
+                      ? "border-primary bg-primary text-white"
+                      : "border-primary/40 bg-white text-primary-dark hover:bg-primary-light"
+                  }`}
+                >
+                  <span>{d.icon}</span>
+                  {d.name}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* 진료과 선택 */}
       <section>
-        <h3 className="mb-3 text-sm font-semibold text-gray-700">2. 진료과 선택</h3>
+        <h3 className="mb-3 text-sm font-semibold text-gray-700">
+          2. 진료과 선택 (전체)
+        </h3>
         <div className="flex flex-col gap-5">
           {LOCK_ORDER.map((lock) => {
             const items = DEPARTMENTS.filter((d) => d.lockType === lock);
