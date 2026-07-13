@@ -81,7 +81,7 @@ export default function Login({ onLogin }: Props) {
           K
         </span>
         <h1 className="text-2xl font-black tracking-tight text-primary-dark">
-          KMTP 신뢰 운영 콘솔
+          KMTP 환자 앱
         </h1>
         <p className="mt-1.5 text-sm text-gray-500">
           {mode === "login" ? "로그인" : "환자 회원가입"}
@@ -231,13 +231,10 @@ export default function Login({ onLogin }: Props) {
         <div className="mt-5 rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-500">
           <p className="font-semibold text-gray-600">데모 계정 (비번 0000)</p>
           <p className="mt-1">
-            <code className="rounded bg-white px-1">patient</code> ·{" "}
-            <code className="rounded bg-white px-1">agent</code> ·{" "}
-            <code className="rounded bg-white px-1">hospital</code> ·{" "}
-            <code className="rounded bg-white px-1">admin</code>
+            <code className="rounded bg-white px-1">patient</code>
           </p>
           <p className="mt-1 text-gray-400">
-            ※ 에이전트·병원 계정은 admin 로그인에서 추가합니다.
+            ※ 환자 전용 앱입니다. 운영자는 별도 운영 콘솔을 이용하세요.
           </p>
         </div>
       )}

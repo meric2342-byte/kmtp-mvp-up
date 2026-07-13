@@ -90,8 +90,8 @@ export default function CheckupPage() {
   }
 
   async function requestBooking() {
-    // 에이전시 관리 페이지(b2b 백엔드)로 전송. NEXT_PUBLIC_API_URL 미설정 시 데모로만 진행.
-    const api = process.env.NEXT_PUBLIC_API_URL;
+    // 에이전시 관리 페이지(b2b 백엔드)로 전송. NEXT_PUBLIC_API_BASE 미설정 시 데모로만 진행.
+    const api = process.env.NEXT_PUBLIC_API_BASE;
     if (api) {
       try {
         await fetch(`${api}/checkup-requests`, {

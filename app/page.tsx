@@ -1,33 +1,25 @@
 "use client";
 
-// KMTP — 진입점: 로그인 여부 / 역할에 따라 화면을 분기합니다.
-// - 로그인 전: 역할 선택 로그인 화면
-// - patient: 견적·예약·신뢰 흐름 (+ 여정 추적 예정)
-// - agent:   담당 환자 관리
-// - hospital: 예약 환자 관리
+// KMTP 환자 앱 — 환자 전용.
+// 운영자(에이전시·병원·관리자)는 별도 운영 콘솔(kmtp-b2b)을 사용합니다.
 import { useState } from "react";
 import type { Account } from "@/lib/auth";
 import Intro from "@/components/Intro";
 import About from "@/components/About";
 import Login from "@/components/Login";
 import PatientApp from "@/components/PatientApp";
-import AgentApp from "@/components/AgentApp";
-import HospitalApp from "@/components/HospitalApp";
-import AdminApp from "@/components/AdminApp";
 
 export default function Home() {
   const [entered, setEntered] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
-  // 관리자 작업(계정 생성)에 필요해 로그인 시 입력한 비밀번호를 메모리에 보관
-  const [authPassword, setAuthPassword] = useState("");
 
-  // 이해관계자 맵 (공통, 인트로에서 진입)
+  // 이해관계자 맵 (인트로에서 진입)
   if (showAbout) {
     return <About onBack={() => setShowAbout(false)} />;
   }
 
-  // 공통 첫 화면 (인트로/랜딩)
+  // 첫 화면 (인트로/랜딩)
   if (!entered) {
     return (
       <Intro
@@ -39,35 +31,31 @@ export default function Home() {
 
   // 로그인 전
   if (!account) {
+    return <Login onLogin={(acc) => setAccount(acc)} />;
+  }
+
+  const logout = () => setAccount(null);
+
+  // 환자 전용 — 운영자 계정으로 들어오면 안내만
+  if (account.role !== "patient") {
     return (
-      <Login
-        onLogin={(acc, pw) => {
-          setAccount(acc);
-          setAuthPassword(pw);
-        }}
-      />
+      <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center gap-3 px-5 py-16 text-center">
+        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-black text-white">
+          K
+        </span>
+        <h1 className="text-xl font-black text-primary-dark">환자 전용 앱입니다</h1>
+        <p className="text-sm text-gray-500">
+          에이전시·병원·운영자는 별도 운영 콘솔(관리 사이트)을 이용해 주세요.
+        </p>
+        <button
+          onClick={logout}
+          className="mt-2 rounded-xl border-2 border-gray-200 px-6 py-2.5 text-sm font-bold text-gray-600 hover:border-primary/40"
+        >
+          ← 로그아웃
+        </button>
+      </div>
     );
   }
 
-  // 로그인 후 — 역할별 화면
-  const logout = () => {
-    setAccount(null);
-    setAuthPassword("");
-  };
-  switch (account.role) {
-    case "patient":
-      return <PatientApp account={account} onLogout={logout} />;
-    case "agent":
-      return <AgentApp account={account} onLogout={logout} />;
-    case "hospital":
-      return <HospitalApp account={account} onLogout={logout} />;
-    case "admin":
-      return (
-        <AdminApp
-          account={account}
-          adminPassword={authPassword}
-          onLogout={logout}
-        />
-      );
-  }
+  return <PatientApp account={account} onLogout={logout} />;
 }
