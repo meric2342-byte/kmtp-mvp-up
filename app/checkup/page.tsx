@@ -90,8 +90,8 @@ export default function CheckupPage() {
   }
 
   async function requestBooking() {
-    // 에이전시 관리 페이지(b2b 백엔드)로 전송. NEXT_PUBLIC_API_BASE 미설정 시 데모로만 진행.
-    const api = process.env.NEXT_PUBLIC_API_BASE;
+    // 에이전시 관리 페이지(b2b 백엔드)로 전송. 기본값으로 실서버 주소를 사용(환경변수로 덮어쓰기 가능).
+    const api = process.env.NEXT_PUBLIC_API_BASE ?? "https://kmtp-b2b-api-production.up.railway.app";
     if (api) {
       try {
         await fetch(`${api}/checkup-requests`, {
