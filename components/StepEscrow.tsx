@@ -5,6 +5,7 @@
 import { useState } from "react";
 import {
   formatKRW,
+  REFUND_POLICY,
   type Country,
   type Department,
   type Quote,
@@ -67,6 +68,8 @@ export default function StepEscrow({
 }: Props) {
   // mock 결제 상태: false → 예치 전, true → 예치 완료
   const [deposited, setDeposited] = useState(false);
+  // 환불 정책 고지·동의 (동의 전에는 예치 불가)
+  const [agreed, setAgreed] = useState(false);
   const deposit = getDeposit(quote);
 
   return (
@@ -144,14 +147,46 @@ export default function StepEscrow({
           </div>
           <div className="px-6 py-5">
             <ul className="mb-4 flex flex-col gap-2 text-sm text-gray-600">
-              <li>🔒 결제금은 치료 완료 확인 전까지 KMTP가 보관합니다.</li>
-              <li>🛡️ 분쟁 발생 시 환불 보호가 적용됩니다.</li>
-              <li>🏥 치료 완료를 확인하면 병원에 정산됩니다.</li>
+              <li>결제금은 치료 완료 확인 전까지 KMTP가 보관합니다.</li>
+              <li>분쟁 발생 시 환불 보호가 적용됩니다.</li>
+              <li>치료 완료를 확인하면 병원에 정산됩니다.</li>
             </ul>
+
+            {/* 환불 정책 고지 (사전 고지 + 자동 환불) */}
+            <div className="mb-3 rounded-xl border border-primary/20 bg-primary-light/40 px-4 py-3">
+              <p className="text-xs font-bold text-primary-dark">
+                환불 정책 · {REFUND_POLICY.summary}
+              </p>
+              <ul className="mt-2 flex flex-col gap-1 text-[11px] text-gray-600">
+                {REFUND_POLICY.lines.map((line) => (
+                  <li key={line}>· {line}</li>
+                ))}
+              </ul>
+            </div>
+
+            {/* 고지·동의 체크 (동의 전 예치 불가) */}
+            <label className="mb-3 flex cursor-pointer items-start gap-2 text-xs text-gray-600">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0"
+              />
+              <span>
+                위 환불 정책을 확인했으며, {REFUND_POLICY.fullRefundHours}시간 전
+                취소 시 자동 환불에 동의합니다.
+              </span>
+            </label>
+
             <button
               type="button"
+              disabled={!agreed}
               onClick={() => setDeposited(true)}
-              className="w-full rounded-xl bg-primary py-4 text-lg font-bold text-white transition-colors hover:bg-primary-dark"
+              className={`w-full rounded-xl py-4 text-lg font-bold text-white transition-colors ${
+                agreed
+                  ? "bg-primary hover:bg-primary-dark"
+                  : "cursor-not-allowed bg-gray-300"
+              }`}
             >
               {formatKRW(deposit.amount)} 에스크로 예치하기
             </button>
@@ -169,9 +204,8 @@ export default function StepEscrow({
             에스크로 예치 완료
           </p>
           <p className="text-sm text-primary-dark/80">
-            {formatKRW(deposit.amount)}이(가) 안전하게 보관되었습니다.
-            <br />
-            치료 완료를 확인하면 병원에 정산됩니다.
+            {formatKRW(deposit.amount)}이(가) 안전하게 보관되었습니다. 치료
+            완료를 확인하면 병원에 정산됩니다.
           </p>
           <span className="mt-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary-dark">
             상태: 보관 중 (Held in Escrow)

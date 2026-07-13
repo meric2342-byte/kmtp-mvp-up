@@ -136,7 +136,34 @@ export const DEPARTMENTS: Department[] = [
 
 // 환율 안내 (견적 화면 공통 문구)
 export const EXCHANGE_NOTE =
-  "표시 가격은 자국 통화 기준이며, 입국 시점의 환율 변동은 ±3% 이내에서 자동 흡수됩니다.";
+  "표시 가격은 원화(KRW) 기준이며, 예약 시점 환율로 주요 통화 환산액을 함께 표기합니다. 입국 시점의 환율 변동은 ±3% 이내에서 자동 흡수됩니다.";
+
+// 다통화 환산 (mock 환율 · 1 통화당 KRW) — 결제 전 자국통화 환산액 병기(No-Surprise)
+export const RATES: { code: string; symbol: string; krwPer: number }[] = [
+  { code: "USD", symbol: "$", krwPer: 1360 },
+  { code: "CNY", symbol: "¥", krwPer: 190 },
+];
+
+// KRW → "≈ $2,574 · ¥18,421" 환산 문자열
+export const formatFX = (krw: number) =>
+  "≈ " +
+  RATES.map(
+    (r) => `${r.symbol}${Math.round(krw / r.krwPer).toLocaleString("en-US")}`,
+  ).join(" · ");
+
+// 예약금(슬롯 선결제) — 노쇼 구조적 차단. 최종 진료비에서 차감.
+export const SLOT_DEPOSIT = 200000;
+
+// 환불 정책 — 사전 고지·동의 + 자동 환불 (신뢰/No-Surprise 강화)
+export const REFUND_POLICY = {
+  fullRefundHours: 48,
+  summary: "예약 48시간 전까지 취소하면 예약금을 100% 자동 환불합니다.",
+  lines: [
+    "48시간 전 취소 — 예약금 100% 자동 환불",
+    "48시간 이내 취소 — 예약금 50% 환불",
+    "노쇼(미방문) — 예약금 환불 불가",
+  ],
+};
 
 // 회복스테이 객실 (회복기간 동안 함께 예약되는 숙소)
 export type RoomType = {

@@ -6,6 +6,7 @@ import {
   LOCK_META,
   EXCHANGE_NOTE,
   formatKRW,
+  formatFX,
   type Country,
   type Department,
   type Quote,
@@ -90,6 +91,9 @@ function FullCard({ quote }: { quote: Extract<Quote, { type: "full" }> }) {
       <div className="bg-primary px-6 py-5 text-white">
         <p className="text-sm opacity-90">🔒 총액 고정 — 이 금액에서 변동 없음</p>
         <p className="mt-1 text-3xl font-black">{formatKRW(quote.total)}</p>
+        <p className="mt-0.5 text-sm font-semibold opacity-90">
+          {formatFX(quote.total)}
+        </p>
         <p className="mt-1 text-xs opacity-80">
           가격잠금 유효기간 {quote.validDays}일
         </p>
@@ -145,6 +149,9 @@ function RangeCard({ quote }: { quote: Extract<Quote, { type: "range" }> }) {
           {formatKRW(quote.min)}{" "}
           <span className="text-lg font-normal opacity-70">~</span>{" "}
           {formatKRW(quote.max)}
+        </p>
+        <p className="mt-0.5 text-sm font-semibold opacity-90">
+          {formatFX(quote.min)} ~ {formatFX(quote.max)}
         </p>
         <p className="mt-1 text-xs opacity-80">{quote.base}</p>
       </div>

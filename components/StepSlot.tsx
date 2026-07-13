@@ -5,6 +5,8 @@ import {
   RECOMMENDED_HOSPITAL,
   RECOVERY_ROOMS,
   SCHEDULE,
+  SLOT_DEPOSIT,
+  REFUND_POLICY,
   findRoom,
   formatKRW,
   type Country,
@@ -210,8 +212,22 @@ export default function StepSlot({
       {/* 선택 요약 */}
       {canNext && (
         <div className="rounded-xl bg-primary-light px-4 py-3 text-sm text-primary-dark">
-          ✅ 선택한 예약: <b>{slotDate}</b> <b>{slotTime}</b> · {h.name}
-          <br />🌿 회복스테이: <b>{room.name}</b> {nights}박 ({formatKRW(roomTotal)})
+          선택한 예약: <b>{slotDate}</b> <b>{slotTime}</b> · {h.name} / 회복스테이{" "}
+          <b>{room.name}</b> {nights}박 ({formatKRW(roomTotal)})
+        </div>
+      )}
+
+      {/* 예약금 선결제 안내 (노쇼 구조적 차단) */}
+      {canNext && (
+        <div className="rounded-xl border border-primary/25 bg-white px-4 py-3">
+          <p className="text-sm font-bold text-primary-dark">
+            예약금 {formatKRW(SLOT_DEPOSIT)}로 이 슬롯을 잠급니다
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            예약 시점에 예약금을 먼저 결제해 슬롯을 확정합니다(노쇼 방지).
+            예약금은 최종 진료비에서 차감되며, {REFUND_POLICY.fullRefundHours}시간
+            전 취소 시 100% 자동 환불됩니다.
+          </p>
         </div>
       )}
 
@@ -234,7 +250,7 @@ export default function StepSlot({
               : "cursor-not-allowed bg-gray-300"
           }`}
         >
-          결제 단계로 →
+          예약금 결제로 →
         </button>
       </div>
     </div>
