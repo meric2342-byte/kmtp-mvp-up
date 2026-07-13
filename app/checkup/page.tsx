@@ -2,7 +2,7 @@
 
 // 외국인 건강검진 여정 MVP 프로토타입 (mock)
 // 4단계: 사전문진 → 병원·프로그램 선택 → 예약 요청 → 병원 컨펌
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const CONDITIONS = ["고혈압", "당뇨", "심장질환", "신장질환", "갑상선", "없음"];
 
@@ -63,6 +63,14 @@ export default function CheckupPage() {
   const [status, setStatus] = useState<"none" | "pending" | "confirmed">("none");
   const [confirmedDate, setConfirmedDate] = useState<string | null>(null);
 
+  // 에이전시 귀속 코드(링크 ?ref=). 없으면 우리 직접 방문으로 처리됨.
+  const [ref, setRef] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setRef(new URLSearchParams(window.location.search).get("ref"));
+    }
+  }, []);
+
   const program = PROGRAMS.find((p) => p.id === programId) ?? null;
 
   function toggleCondition(c: string) {
@@ -97,7 +105,7 @@ export default function CheckupPage() {
             image_link: imageLink,
             program: program?.name ?? null,
             preferred_dates: dates,
-            agent_id: 1,
+            ref: ref || undefined,
           }),
         });
       } catch {
