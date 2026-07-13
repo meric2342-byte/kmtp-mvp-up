@@ -49,6 +49,7 @@ export default function CheckupPage() {
   const [step, setStep] = useState(1);
 
   // 1. 사전문진
+  const [name, setName] = useState("");
   const [conditions, setConditions] = useState<string[]>([]);
   const [meds, setMeds] = useState("");
   const [allergy, setAllergy] = useState("");
@@ -80,7 +81,29 @@ export default function CheckupPage() {
     });
   }
 
-  function requestBooking() {
+  async function requestBooking() {
+    // 에이전시 관리 페이지(b2b 백엔드)로 전송. NEXT_PUBLIC_API_URL 미설정 시 데모로만 진행.
+    const api = process.env.NEXT_PUBLIC_API_URL;
+    if (api) {
+      try {
+        await fetch(`${api}/checkup-requests`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patient_name: name || "이름 미입력",
+            conditions,
+            meds,
+            allergy,
+            image_link: imageLink,
+            program: program?.name ?? null,
+            preferred_dates: dates,
+            agent_id: 1,
+          }),
+        });
+      } catch {
+        // 데모: 백엔드 미연동 시 무시하고 진행
+      }
+    }
     setStatus("pending");
     setStep(4);
   }
@@ -153,6 +176,10 @@ export default function CheckupPage() {
               <h2 className="text-xl font-bold text-primary-dark sm:text-2xl">사전문진 · 앙케이트</h2>
               <p className="mt-1 text-sm text-gray-500">검진 전 상태를 미리 확인합니다. 안내는 WhatsApp으로 받습니다.</p>
             </div>
+
+            <Field label="환자 이름 (여권 영문)">
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: NGUYEN VAN AN" className={inputCls} />
+            </Field>
 
             <section>
               <p className="mb-3 text-sm font-semibold text-gray-700">기저질환 (해당 항목 선택)</p>
