@@ -165,7 +165,7 @@ export const REFUND_POLICY = {
   ],
 };
 
-// 회복스테이 객실 (회복기간 동안 함께 예약되는 숙소)
+// 호텔 객실 (체류 기간 동안 함께 예약되는 숙소)
 export type RoomType = {
   id: "standard" | "deluxe" | "family";
   name: string;
@@ -174,9 +174,9 @@ export type RoomType = {
 };
 
 export const RECOVERY_ROOMS: RoomType[] = [
-  { id: "standard", name: "스탠다드", perNight: 150000, desc: "1인 회복실 · 기본 케어" },
-  { id: "deluxe", name: "디럭스", perNight: 250000, desc: "넓은 1인실 · 간호 콜 24h" },
-  { id: "family", name: "패밀리", perNight: 400000, desc: "보호자 동반 · 2침대" },
+  { id: "standard", name: "스탠다드 룸", perNight: 150000, desc: "1인 · 기본 객실" },
+  { id: "deluxe", name: "디럭스 룸", perNight: 250000, desc: "넓은 1인실" },
+  { id: "family", name: "스위트 룸", perNight: 400000, desc: "보호자 동반 · 2베드" },
 ];
 
 export const findRoom = (id: string) =>

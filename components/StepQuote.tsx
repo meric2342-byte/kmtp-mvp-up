@@ -57,8 +57,8 @@ export default function StepQuote({
       <div className="flex flex-col gap-2 rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
         <p>💱 {EXCHANGE_NOTE}</p>
         <p>
-          🌿 표준 회복기간 <b>{dept.recoveryNights}박</b> — 다음 예약 단계에서
-          회복기간에 맞는 회복스테이 객실이 함께 추천됩니다.
+          🏨 예상 숙박 <b>{dept.recoveryNights}박</b> — 다음 예약 단계에서
+          일정에 맞는 호텔 객실이 함께 추천됩니다.
         </p>
       </div>
 

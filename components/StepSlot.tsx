@@ -170,10 +170,10 @@ export default function StepSlot({
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-700">
-            3. 회복스테이 (자동 매칭)
+            3. 호텔 (숙박)
           </h3>
           <span className="rounded-full bg-primary-light px-2.5 py-0.5 text-[11px] font-semibold text-primary-dark">
-            {dept.name} 표준 {nights}박
+            {nights}박 예약
           </span>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -212,7 +212,7 @@ export default function StepSlot({
       {/* 선택 요약 */}
       {canNext && (
         <div className="rounded-xl bg-primary-light px-4 py-3 text-sm text-primary-dark">
-          선택한 예약: <b>{slotDate}</b> <b>{slotTime}</b> · {h.name} / 회복스테이{" "}
+          선택한 예약: <b>{slotDate}</b> <b>{slotTime}</b> · {h.name} / 호텔{" "}
           <b>{room.name}</b> {nights}박 ({formatKRW(roomTotal)})
         </div>
       )}

@@ -34,8 +34,6 @@ const PROGRAMS: Program[] = [
   },
 ];
 
-const DATES = ["7월 20일", "7월 21일", "7월 22일", "7월 23일", "7월 24일"];
-
 const won = (n: number) => "₩" + n.toLocaleString("ko-KR");
 
 const STEPS = [
@@ -59,7 +57,9 @@ export default function CheckupPage() {
   const [programId, setProgramId] = useState<string | null>(null);
 
   // 3~4. 예약·컨펌
-  const [dates, setDates] = useState<string[]>([]);
+  const today = new Date().toISOString().slice(0, 10);
+  const [dates, setDates] = useState<string[]>(["", "", ""]);
+  const chosenDates = dates.filter(Boolean);
   const [status, setStatus] = useState<"none" | "pending" | "confirmed">("none");
   const [confirmedDate, setConfirmedDate] = useState<string | null>(null);
 
@@ -81,11 +81,11 @@ export default function CheckupPage() {
     });
   }
 
-  function toggleDate(d: string) {
+  function setDateAt(i: number, val: string) {
     setDates((prev) => {
-      if (prev.includes(d)) return prev.filter((x) => x !== d);
-      if (prev.length >= 3) return prev;
-      return [...prev, d];
+      const next = [...prev];
+      next[i] = val;
+      return next;
     });
   }
 
@@ -104,7 +104,7 @@ export default function CheckupPage() {
             allergy,
             image_link: imageLink,
             program: program?.name ?? null,
-            preferred_dates: dates,
+            preferred_dates: chosenDates,
             ref: ref || undefined,
           }),
         });
@@ -117,7 +117,7 @@ export default function CheckupPage() {
   }
 
   function demoConfirm() {
-    setConfirmedDate(dates[0] ?? DATES[0]);
+    setConfirmedDate(chosenDates[0] ?? "");
     setStatus("confirmed");
   }
 
@@ -298,35 +298,29 @@ export default function CheckupPage() {
             )}
 
             <section>
-              <p className="mb-3 text-sm font-semibold text-gray-700">희망 날짜 (최대 3개 · {dates.length}/3)</p>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                {DATES.map((d) => {
-                  const on = dates.includes(d);
-                  return (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => toggleDate(d)}
-                      className={`rounded-xl border-2 py-3 text-sm font-bold transition-all ${
-                        on
-                          ? "border-primary bg-primary text-white"
-                          : "border-gray-200 bg-white text-gray-800 hover:border-primary/40"
-                      }`}
-                    >
-                      {d}
-                    </button>
-                  );
-                })}
+              <p className="mb-3 text-sm font-semibold text-gray-700">희망 날짜 (최대 3개, 달력에서 선택)</p>
+              <div className="flex flex-col gap-2">
+                {[0, 1, 2].map((i) => (
+                  <input
+                    key={i}
+                    type="date"
+                    min={today}
+                    value={dates[i] ?? ""}
+                    onChange={(e) => setDateAt(i, e.target.value)}
+                    className={inputCls}
+                  />
+                ))}
               </div>
+              <p className="mt-2 text-xs text-gray-400">1지망부터 순서대로 선택하세요. 병원이 이 중 하나로 컨펌합니다.</p>
             </section>
 
             <div className="flex items-center justify-between">
               <button type="button" onClick={() => setStep(2)} className={prevCls}>← 이전</button>
               <button
                 type="button"
-                disabled={dates.length === 0}
+                disabled={chosenDates.length === 0}
                 onClick={requestBooking}
-                className={`${nextCls} ${dates.length === 0 ? "cursor-not-allowed !bg-gray-300" : ""}`}
+                className={`${nextCls} ${chosenDates.length === 0 ? "cursor-not-allowed !bg-gray-300" : ""}`}
               >
                 예약 요청 보내기 →
               </button>
@@ -348,7 +342,7 @@ export default function CheckupPage() {
                   <span className="text-2xl">⏳</span>
                   <div>
                     <p className="text-sm font-bold text-amber-800">병원 컨펌 대기 중</p>
-                    <p className="text-xs text-amber-700">희망 날짜: {dates.join(", ")}</p>
+                    <p className="text-xs text-amber-700">희망 날짜: {chosenDates.join(", ")}</p>
                   </div>
                 </div>
                 <button type="button" onClick={demoConfirm} className="rounded-xl border-2 border-primary px-6 py-3 text-sm font-bold text-primary hover:bg-primary-light">
