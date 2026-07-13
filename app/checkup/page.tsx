@@ -3,6 +3,7 @@
 // 외국인 건강검진 여정 MVP 프로토타입 (mock)
 // 4단계: 사전문진 → 병원·프로그램 선택 → 예약 요청 → 병원 컨펌
 import { useEffect, useState } from "react";
+import { B2B_API_BASE } from "@/lib/api";
 
 const CONDITIONS = ["고혈압", "당뇨", "심장질환", "신장질환", "갑상선", "없음"];
 
@@ -90,27 +91,24 @@ export default function CheckupPage() {
   }
 
   async function requestBooking() {
-    // 에이전시 관리 페이지(b2b 백엔드)로 전송. 기본값으로 실서버 주소를 사용(환경변수로 덮어쓰기 가능).
-    const api = process.env.NEXT_PUBLIC_API_BASE ?? "https://kmtp-b2b-api-production.up.railway.app";
-    if (api) {
-      try {
-        await fetch(`${api}/checkup-requests`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            patient_name: name || "이름 미입력",
-            conditions,
-            meds,
-            allergy,
-            image_link: imageLink,
-            program: program?.name ?? null,
-            preferred_dates: chosenDates,
-            ref: ref || undefined,
-          }),
-        });
-      } catch {
-        // 데모: 백엔드 미연동 시 무시하고 진행
-      }
+    // 검진 요청은 항상 b2b 운영 백엔드(에이전시 관리)로 전송한다.
+    try {
+      await fetch(`${B2B_API_BASE}/checkup-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_name: name || "이름 미입력",
+          conditions,
+          meds,
+          allergy,
+          image_link: imageLink,
+          program: program?.name ?? null,
+          preferred_dates: chosenDates,
+          ref: ref || undefined,
+        }),
+      });
+    } catch {
+      // 데모: 백엔드 미연동 시 무시하고 진행
     }
     setStatus("pending");
     setStep(4);

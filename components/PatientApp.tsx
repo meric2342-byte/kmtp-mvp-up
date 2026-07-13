@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { Account } from "@/lib/auth";
 import TopBar from "@/components/TopBar";
 import PatientJourney from "@/components/PatientJourney";
+import AddonServices from "@/components/AddonServices";
 import KakaoChat from "@/components/KakaoChat";
 import Stepper from "@/components/Stepper";
 import StepCountryDept from "@/components/StepCountryDept";
@@ -26,7 +27,7 @@ type Props = {
   onLogout: () => void;
 };
 
-type Tab = "journey" | "booking" | "messages";
+type Tab = "journey" | "booking" | "addons" | "messages";
 
 export default function PatientApp({ account, onLogout }: Props) {
   // 상단 탭: 내 여정 / 견적·예약·신뢰 (처음엔 견적·예약부터)
@@ -83,6 +84,7 @@ export default function PatientApp({ account, onLogout }: Props) {
             [
               { key: "journey", label: "내 여정" },
               { key: "booking", label: "견적·예약·신뢰" },
+              { key: "addons", label: "부가서비스" },
               { key: "messages", label: "💬 메시지" },
             ] as { key: Tab; label: string }[]
           ).map((t) => (
@@ -119,6 +121,9 @@ export default function PatientApp({ account, onLogout }: Props) {
             }}
           />
         )}
+
+        {/* 부가서비스 탭 (호텔·택시·통역 → 에이전시 관리로 전송) */}
+        {tab === "addons" && <AddonServices account={account} />}
 
         {/* 메시지 탭 (카카오톡 스타일) */}
         {tab === "messages" && (

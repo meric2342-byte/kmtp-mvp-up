@@ -106,6 +106,17 @@ export default function PatientJourney({
 
       {journey.data && (
         <>
+          {/* 새로 시작하는 환자: 아직 완료된 단계가 없으면 '여정 시작 전' 안내 */}
+          {journey.data.done_stages.length === 0 && (
+            <div className="rounded-2xl border border-primary/20 bg-primary-light/40 px-6 py-5">
+              <p className="font-bold text-primary-dark">🛫 여정을 시작할 준비가 됐어요</p>
+              <p className="mt-1 text-sm text-gray-600">
+                아직 진행된 단계가 없습니다. 첫 단계
+                <b> 「{stageLabel(journey.data.current_stage)}」</b>부터 하나씩 진행됩니다.
+              </p>
+            </div>
+          )}
+
           {/* 일정 + 픽업 연락처 요약 */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {/* 병원 일정 */}

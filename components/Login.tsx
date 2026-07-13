@@ -6,6 +6,13 @@
 import { useState } from "react";
 import { authenticate, type Account } from "@/lib/auth";
 import { api } from "@/lib/api";
+import {
+  NATIONALITIES,
+  saveProfile,
+  fullName,
+  EMPTY_PROFILE,
+  type PatientProfile,
+} from "@/lib/profile";
 
 type Props = {
   onLogin: (account: Account, password: string) => void;
@@ -20,11 +27,12 @@ export default function Login({ onLogin }: Props) {
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
 
-  // 회원가입 입력 (환자)
+  // 회원가입 입력 (환자) — 아이디/비번 + b2b 수준 프로필
   const [suId, setSuId] = useState("");
   const [suPw, setSuPw] = useState("");
-  const [suName, setSuName] = useState("");
-  const [suNation, setSuNation] = useState("");
+  const [profile, setProfile] = useState<PatientProfile>({ ...EMPTY_PROFILE });
+  const setP = (field: keyof PatientProfile, value: string) =>
+    setProfile((prev) => ({ ...prev, [field]: value }));
 
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -47,12 +55,17 @@ export default function Login({ onLogin }: Props) {
     setBusy(true);
     setError(null);
     try {
+      const name = fullName(profile);
+      // 인증/여정 계정은 Render(mvp) 백엔드에 생성 — name/국적/진료과만 저장
       const acc = await api.auth.registerPatient({
         login_id: suId,
         password: suPw,
-        name: suName || undefined,
-        nationality: suNation || undefined,
+        name: name || undefined,
+        nationality: profile.nationality || undefined,
+        department: profile.department || undefined,
       });
+      // 여권 등 상세 프로필은 로컬에 보관 → 검진·부가서비스 요청 시 b2b로 함께 전달
+      saveProfile(profile);
       onLogin(
         {
           id: acc.id,
@@ -174,27 +187,90 @@ export default function Login({ onLogin }: Props) {
               className={inputCls}
             />
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">
-              이름
-            </label>
-            <input
-              type="text"
-              value={suName}
-              onChange={(e) => setSuName(e.target.value)}
-              placeholder="이름 (선택)"
-              className={inputCls}
-            />
+          {/* 성명 분리 (여권 영문 표기) */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-600">
+                성 (Surname)
+              </label>
+              <input
+                type="text"
+                value={profile.surname}
+                onChange={(e) => setP("surname", e.target.value)}
+                placeholder="예: NGUYEN"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-600">
+                이름 (Given Name)
+              </label>
+              <input
+                type="text"
+                value={profile.givenName}
+                onChange={(e) => setP("givenName", e.target.value)}
+                placeholder="예: VAN AN"
+                className={inputCls}
+              />
+            </div>
           </div>
+
+          {/* 국적 드롭다운 */}
           <div>
             <label className="mb-1 block text-xs font-semibold text-gray-600">
               국적
             </label>
+            <select
+              value={profile.nationality}
+              onChange={(e) => setP("nationality", e.target.value)}
+              className={inputCls}
+            >
+              <option value="">국적 선택 (선택)</option>
+              {NATIONALITIES.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 여권 정보 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-600">
+                여권번호
+              </label>
+              <input
+                type="text"
+                value={profile.passportNumber}
+                onChange={(e) => setP("passportNumber", e.target.value)}
+                placeholder="예: C1234567"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-600">
+                여권 만료일
+              </label>
+              <input
+                type="date"
+                value={profile.passportExpiry}
+                onChange={(e) => setP("passportExpiry", e.target.value)}
+                className={inputCls}
+              />
+            </div>
+          </div>
+
+          {/* 진료과 (자유입력) */}
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-gray-600">
+              진료과 (복수 입력 가능)
+            </label>
             <input
               type="text"
-              value={suNation}
-              onChange={(e) => setSuNation(e.target.value)}
-              placeholder="예: 중국 (선택)"
+              value={profile.department}
+              onChange={(e) => setP("department", e.target.value)}
+              placeholder="예: 건강검진, 치과, 피부과"
               className={inputCls}
             />
           </div>

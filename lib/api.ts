@@ -6,6 +6,11 @@
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
+// 검진(/checkup)·부가서비스 요청은 항상 b2b 운영 백엔드(에이전시 관리, Railway)로 보냅니다.
+// mvp 자체 인증/여정(API_BASE, Render)과 데이터가 갈리지 않도록 단일 백엔드로 통일.
+// (NEXT_PUBLIC_API_BASE 로 덮어쓰지 않음 — 그 변수는 Render 전용)
+export const B2B_API_BASE = "https://kmtp-b2b-api-production.up.railway.app";
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { "Content-Type": "application/json" },
