@@ -182,6 +182,173 @@ export const RECOVERY_ROOMS: RoomType[] = [
 export const findRoom = (id: string) =>
   RECOVERY_ROOMS.find((r) => r.id === id) ?? RECOVERY_ROOMS[0];
 
+// ============================================================
+// 병원 + 시술별 가격잠금 견적 (병원 선택 → 시술별 견적 매핑)
+// ============================================================
+
+export type HospitalTreatmentQuote = {
+  deptId: string;
+  items: { label: string; amount: number }[];
+  total: number;
+  includes: string[];
+};
+
+export type HospitalOption = {
+  id: string;
+  name: string;
+  area: string;
+  rating: number;
+  reviewCount: number;
+  badges: string[];
+  treatments: HospitalTreatmentQuote[];
+};
+
+export const HOSPITALS: HospitalOption[] = [
+  {
+    id: "H001",
+    name: "서울 메디케어 국제병원",
+    area: "서울 강남 · 국제진료센터",
+    rating: 4.8,
+    reviewCount: 1284,
+    badges: ["JCI 인증", "외국인 전담 코디", "에스크로 제휴"],
+    treatments: [
+      {
+        deptId: "derma",
+        items: [
+          { label: "시술비 (레이저·리프팅 패키지)", amount: 2600000 },
+          { label: "진정·마취 및 약제", amount: 350000 },
+          { label: "사후관리 2회", amount: 300000 },
+          { label: "통역·코디네이터", amount: 250000 },
+        ],
+        total: 3500000,
+        includes: ["시술 전 진단", "회복 케어 키트", "귀국 후 화상 상담 1회"],
+      },
+      {
+        deptId: "dental",
+        items: [
+          { label: "임플란트 2개 (픽스처+크라운)", amount: 3200000 },
+          { label: "CT·진단 및 디자인", amount: 400000 },
+          { label: "사후관리·통역", amount: 600000 },
+        ],
+        total: 4200000,
+        includes: ["3D 진단", "임시 보철", "귀국 후 원격 점검"],
+      },
+      {
+        deptId: "eye",
+        items: [
+          { label: "시력교정 수술 (양안)", amount: 2200000 },
+          { label: "정밀 검사 패키지", amount: 350000 },
+          { label: "사후관리·통역", amount: 250000 },
+        ],
+        total: 2800000,
+        includes: ["정밀 안검사", "보호 안경", "1개월 점안제"],
+      },
+      {
+        deptId: "checkup",
+        items: [
+          { label: "프리미엄 종합검진", amount: 1100000 },
+          { label: "영상검사 (MRI 포함)", amount: 300000 },
+          { label: "통역·결과 상담", amount: 100000 },
+        ],
+        total: 1500000,
+        includes: ["당일 결과 요약", "영문/현지어 리포트", "전문의 화상 상담"],
+      },
+      {
+        deptId: "thyroid",
+        items: [
+          { label: "갑상선 절제술 (기본)", amount: 6500000 },
+          { label: "마취·회복 관리", amount: 800000 },
+          { label: "통역·코디네이터", amount: 500000 },
+        ],
+        total: 7800000,
+        includes: ["수술 전 정밀검사", "1주 회복 관리", "귀국 후 원격 진료"],
+      },
+    ],
+  },
+  {
+    id: "H002",
+    name: "강남 뷰티메디컬센터",
+    area: "서울 강남 · 뷰티·피부 전문",
+    rating: 4.7,
+    reviewCount: 892,
+    badges: ["뷰티 전문", "에스크로 제휴", "한·영·중 통역"],
+    treatments: [
+      {
+        deptId: "derma",
+        items: [
+          { label: "시술비 (레이저·필러 패키지)", amount: 2200000 },
+          { label: "마취 크림·약제", amount: 200000 },
+          { label: "사후관리 3회", amount: 450000 },
+          { label: "통역", amount: 150000 },
+        ],
+        total: 3000000,
+        includes: ["피부 진단", "맞춤 케어 키트", "화상 사후 상담 2회"],
+      },
+      {
+        deptId: "eye",
+        items: [
+          { label: "라식/라섹 수술 (양안)", amount: 1900000 },
+          { label: "정밀 안검사", amount: 300000 },
+          { label: "사후관리", amount: 200000 },
+        ],
+        total: 2400000,
+        includes: ["정밀 각막 검사", "보호 안경", "점안제 1개월"],
+      },
+    ],
+  },
+  {
+    id: "H003",
+    name: "연세 정형척추병원",
+    area: "서울 서대문 · 정형·척추 전문",
+    rating: 4.9,
+    reviewCount: 643,
+    badges: ["정형외과 전문", "로봇수술 도입", "에스크로 제휴"],
+    treatments: [
+      {
+        deptId: "joint",
+        items: [
+          { label: "인공관절 치환술 (편측)", amount: 12500000 },
+          { label: "마취·수술 관리", amount: 1500000 },
+          { label: "재활 치료 2주", amount: 1000000 },
+          { label: "통역·코디", amount: 500000 },
+        ],
+        total: 15500000,
+        includes: ["수술 전 정밀검사", "2주 재활", "귀국 후 원격 진료 2회"],
+      },
+      {
+        deptId: "spine",
+        items: [
+          { label: "척추 디스크 수술 (단일 분절)", amount: 9500000 },
+          { label: "마취·회복 관리", amount: 1200000 },
+          { label: "재활 치료 1주", amount: 800000 },
+          { label: "통역·코디", amount: 500000 },
+        ],
+        total: 12000000,
+        includes: ["수술 전 MRI", "1주 재활", "귀국 후 원격 진료"],
+      },
+      {
+        deptId: "thyroid",
+        items: [
+          { label: "갑상선 절제술", amount: 7000000 },
+          { label: "마취·회복 관리", amount: 900000 },
+          { label: "통역·코디", amount: 500000 },
+        ],
+        total: 8400000,
+        includes: ["수술 전 초음파", "입원 3일", "귀국 후 원격 진료"],
+      },
+    ],
+  },
+];
+
+export const findHospital = (id: string | null) =>
+  HOSPITALS.find((h) => h.id === id) ?? null;
+
+// 병원에서 선택 시술들의 총 가격잠금 견적
+export const hospitalTotalQuote = (hospital: HospitalOption, deptIds: string[]) =>
+  hospital.treatments
+    .filter((t) => deptIds.includes(t.deptId))
+    .reduce((sum, t) => sum + t.total, 0);
+
 // 헬퍼: id로 국가/진료과 찾기
 export const findCountry = (id: string | null) =>
   COUNTRIES.find((c) => c.id === id) ?? null;

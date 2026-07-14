@@ -2,11 +2,11 @@
 // current: 현재 단계 번호 (1~5)
 
 const STEPS = [
-  { n: 1, label: "국가·진료과" },
-  { n: 2, label: "가격잠금 견적" },
-  { n: 3, label: "예약 슬롯" },
-  { n: 4, label: "에스크로 결제" },
-  { n: 5, label: "No-Surprise" },
+  { n: 1, label: "국적·시술" },
+  { n: 2, label: "병원·견적" },
+  { n: 3, label: "날짜·슬롯" },
+  { n: 4, label: "호텔·서비스" },
+  { n: 5, label: "에스크로" },
   { n: 6, label: "신뢰·후기" },
 ];
 
