@@ -174,6 +174,18 @@ export default function StepHotelServices({
         </p>
       </div>
 
+      {/* 병원 확정 후 진행 안내 */}
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+        <p className="text-sm font-bold text-amber-800">ℹ️ 지금 미리 요청하거나, 병원 예약 확정 후 따로 신청할 수 있습니다</p>
+        <p className="mt-1 text-xs text-amber-700 leading-relaxed">
+          숙박·택시·배차·통역 서비스는 <b>병원 예약이 확정된 이후에도 별도로 신청 가능</b>합니다.
+          지금 미리 추가해두시면 운영팀이 함께 조율하며, 확정 후 신청하셔도 동일하게 처리됩니다.
+        </p>
+        <p className="mt-1.5 text-xs text-amber-600 font-semibold">
+          → 지금 선택하지 않아도 아래 '건너뛰기'로 견적 요청을 먼저 진행할 수 있습니다.
+        </p>
+      </div>
+
       {/* 호텔 선택 (아코디언 그리드) */}
       <section>
         <h3 className="mb-3 text-sm font-semibold text-gray-700">🏨 호텔 선택</h3>

@@ -11,26 +11,141 @@ type Program = {
   id: string;
   name: string;
   hospital: string;
-  desc: string;
+  badge: string;        // 검진 유형 배지
+  tagline: string;      // 한 줄 요약
+  duration: string;     // 소요 시간
+  includes: string[];   // 포함 항목
+  targets: string;      // 권장 대상
   price: number;
   featured: boolean;
 };
 
 const PROGRAMS: Program[] = [
   {
-    id: "premium",
-    name: "종합검진 프리미엄",
+    id: "basic",
+    name: "기본 종합검진",
     hospital: "서울메디케어 국제병원",
-    desc: "위·대장내시경 포함 정밀 검진",
+    badge: "기본",
+    tagline: "혈액·영상 기본 항목으로 건강 상태를 빠르게 확인합니다.",
+    duration: "약 2~3시간 (당일 결과 요약 제공)",
+    includes: [
+      "혈액검사 (혈구·혈당·지질·간·신장·갑상선 기능)",
+      "흉부 X선",
+      "복부 초음파",
+      "심전도(ECG)",
+      "소변·대변검사",
+      "영문/현지어 결과 요약 리포트",
+      "통역 코디네이터 동행",
+    ],
+    targets: "20~40대 · 기본 건강 확인 · 단기 방문자",
+    price: 900_000,
+    featured: false,
+  },
+  {
+    id: "premium",
+    name: "프리미엄 종합검진",
+    hospital: "서울메디케어 국제병원",
+    badge: "인기",
+    tagline: "내시경 포함 정밀 검진. 가장 많이 선택하는 표준 패키지입니다.",
+    duration: "약 4~5시간 (당일 결과 상담 포함)",
+    includes: [
+      "기본 혈액검사 전 항목",
+      "위내시경 (수면 옵션 가능)",
+      "대장내시경 또는 분변 잠혈검사",
+      "흉부 CT (저선량)",
+      "복부 초음파",
+      "갑상선 초음파",
+      "유방 초음파 (여성)",
+      "골밀도 검사",
+      "영문 전문의 소견서 + 화상 상담 1회",
+    ],
+    targets: "40~60대 · 정기 정밀 검진 · 가족력 있는 분",
     price: 1_500_000,
     featured: true,
   },
   {
-    id: "basic",
-    name: "기본 종합검진",
-    hospital: "서울메디케어 국제병원",
-    desc: "기본 혈액·영상검사",
-    price: 900_000,
+    id: "vip",
+    name: "VIP 전신 정밀검진",
+    hospital: "서울아산병원 · 서울메디케어",
+    badge: "프리미엄",
+    tagline: "MRI·CT 전신 스캔 포함. 암·심혈관·뇌 전반을 한 번에 점검합니다.",
+    duration: "약 6~8시간 (2일 분할 가능)",
+    includes: [
+      "프리미엄 검진 전 항목",
+      "뇌 MRI (뇌졸중·종양 스크리닝)",
+      "심장 CT (관상동맥 칼슘 스코어)",
+      "폐 CT (결절·암 조기 발견)",
+      "PET-CT 암 조기검진 (옵션)",
+      "경동맥 초음파",
+      "인지기능검사",
+      "전문의 종합 소견 + 맞춤 건강 플랜",
+      "영문 리포트 + 화상 상담 2회",
+    ],
+    targets: "50대 이상 · 고위험군 · 경영인·VIP",
+    price: 3_500_000,
+    featured: false,
+  },
+  {
+    id: "cancer",
+    name: "암 조기검진 패키지",
+    hospital: "삼성서울병원 · 서울대학교병원",
+    badge: "암 특화",
+    tagline: "주요 6대 암(위·대장·폐·간·유방·자궁경부)을 집중 스크리닝합니다.",
+    duration: "약 5~6시간 (당일 결과 일부 제공)",
+    includes: [
+      "위내시경 + 조직검사(필요 시)",
+      "대장내시경",
+      "폐 CT (저선량)",
+      "간초음파 + AFP",
+      "유방 초음파·맘모그래피 (여성)",
+      "자궁경부 세포진 + HPV (여성)",
+      "전립선 PSA (남성)",
+      "종양 표지자 혈액검사 (CEA·CA19-9 등)",
+      "전문의 결과 상담 + 영문 소견서",
+    ],
+    targets: "40대 이상 · 가족력 있는 분 · 암 조기 발견 원하는 분",
+    price: 2_500_000,
+    featured: false,
+  },
+  {
+    id: "cardio",
+    name: "심혈관 정밀검진",
+    hospital: "신촌 세브란스병원 · 서울아산병원",
+    badge: "심장 특화",
+    tagline: "심장·혈관 전문 정밀 검사. 협심증·심근경색 위험도를 사전에 파악합니다.",
+    duration: "약 4~5시간",
+    includes: [
+      "심장 초음파 (심기능·판막·구조 평가)",
+      "관상동맥 CT (칼슘 스코어 + 협착 여부)",
+      "심전도·24시간 홀터 심전도",
+      "경동맥 초음파 (동맥경화 평가)",
+      "혈압·맥파속도(PWV)",
+      "혈액 (LDL·HDL·중성지방·hs-CRP 등)",
+      "심장내과 전문의 판독 + 영문 소견서",
+    ],
+    targets: "고혈압·당뇨·고지혈증 있는 분 · 가족력 · 40대 이상 남성",
+    price: 2_200_000,
+    featured: false,
+  },
+  {
+    id: "womens",
+    name: "여성 건강검진",
+    hospital: "강남차병원 · 서울성모병원",
+    badge: "여성 특화",
+    tagline: "여성 전용 항목(부인과·유방·갑상선) 중심의 맞춤 검진입니다.",
+    duration: "약 3~4시간",
+    includes: [
+      "기본 혈액검사 전 항목",
+      "유방 초음파 + 맘모그래피",
+      "자궁경부 세포진 (PAP smear) + HPV",
+      "자궁·난소 초음파",
+      "갑상선 초음파 + 기능검사",
+      "골밀도 검사 (DEXA)",
+      "여성 호르몬 (FSH·E2·AMH)",
+      "산부인과 전문의 상담 + 영문 소견서",
+    ],
+    targets: "20~50대 여성 · 부인과 이상 증상 · 폐경 전후",
+    price: 1_800_000,
     featured: false,
   },
 ];
@@ -238,7 +353,7 @@ export default function CheckupPage() {
               <p className="mt-1 text-sm text-gray-500">가격잠금이 적용된 프로그램입니다. 예약 시점 가격이 청구 시점까지 유지됩니다.</p>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-4">
               {PROGRAMS.map((p) => {
                 const sel = p.id === programId;
                 return (
@@ -254,14 +369,46 @@ export default function CheckupPage() {
                           : "border-gray-200 bg-white hover:border-primary/40"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-base font-bold text-gray-800">{p.name}</span>
-                      <span className="rounded-full bg-primary-light px-2.5 py-0.5 text-[11px] font-bold text-primary-dark">
-                        🔒 가격잠금
-                      </span>
+                    {/* 헤더 */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-base font-bold text-gray-800">{p.name}</span>
+                          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                            p.featured ? "bg-primary text-white" : "bg-primary-light text-primary-dark"
+                          }`}>{p.badge}</span>
+                        </div>
+                        <p className="mt-0.5 text-xs text-gray-500">{p.hospital}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-lg font-black text-primary">{won(p.price)}</p>
+                        <span className="text-[10px] font-bold text-primary-dark bg-primary-light px-2 py-0.5 rounded-full">🔒 가격잠금</span>
+                      </div>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">{p.hospital} · {p.desc}</p>
-                    <p className="mt-2 text-lg font-black text-primary">{won(p.price)}</p>
+
+                    {/* 한 줄 요약 */}
+                    <p className="mt-2 text-sm text-gray-600 leading-relaxed">{p.tagline}</p>
+
+                    {/* 소요 시간 */}
+                    <p className="mt-1.5 text-xs text-gray-400">⏱ {p.duration}</p>
+
+                    {/* 포함 항목 */}
+                    <div className="mt-3">
+                      <p className="text-[11px] font-bold text-gray-500 mb-1.5">포함 항목</p>
+                      <ul className="grid grid-cols-1 gap-0.5 sm:grid-cols-2">
+                        {p.includes.map((item) => (
+                          <li key={item} className="flex items-start gap-1 text-[11px] text-gray-600">
+                            <span className="text-primary mt-0.5 shrink-0">✓</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* 권장 대상 */}
+                    <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-[11px] text-gray-500">
+                      👥 권장 대상: {p.targets}
+                    </div>
                   </button>
                 );
               })}
@@ -291,7 +438,8 @@ export default function CheckupPage() {
 
             {program && (
               <div className="rounded-xl bg-primary-light px-4 py-3 text-sm text-primary-dark">
-                선택 프로그램: <b>{program.name}</b> · {won(program.price)}
+                <p><b>{program.name}</b> · {won(program.price)}</p>
+                <p className="text-xs mt-0.5 text-primary-dark/70">{program.tagline}</p>
               </div>
             )}
 
