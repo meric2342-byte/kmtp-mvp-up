@@ -338,6 +338,407 @@ export const HOSPITALS: HospitalOption[] = [
       },
     ],
   },
+  // ── 추가 병원 9개 ──
+  {
+    id: "H002new",
+    name: "신촌 세브란스병원",
+    area: "서울 서대문 · 연세의료원",
+    rating: 4.9,
+    reviewCount: 2156,
+    badges: ["연세의료원", "갑상선·암 전문", "외국인 전담"],
+    treatments: [
+      {
+        deptId: "thyroid",
+        items: [
+          { label: "갑상선 절제술 (세브란스 프로토콜)", amount: 6800000 },
+          { label: "마취·회복 관리", amount: 900000 },
+          { label: "통역·코디네이터", amount: 800000 },
+        ],
+        total: 8500000,
+        includes: ["수술 전 정밀검사", "입원 4일", "귀국 후 원격 진료"],
+      },
+      {
+        deptId: "joint",
+        items: [
+          { label: "인공관절 치환술 (편측)", amount: 13000000 },
+          { label: "마취·수술 관리", amount: 1800000 },
+          { label: "재활 치료 2주", amount: 1200000 },
+        ],
+        total: 16000000,
+        includes: ["수술 전 정밀검사", "2주 재활", "귀국 후 원격 진료 2회"],
+      },
+      {
+        deptId: "checkup",
+        items: [
+          { label: "프리미엄 종합검진", amount: 1300000 },
+          { label: "영상검사 (MRI 포함)", amount: 350000 },
+          { label: "통역·결과 상담", amount: 150000 },
+        ],
+        total: 1800000,
+        includes: ["당일 결과 요약", "영문 리포트", "전문의 화상 상담"],
+      },
+      {
+        deptId: "spine",
+        items: [
+          { label: "척추 디스크 수술 (단일 분절)", amount: 10500000 },
+          { label: "마취·회복 관리", amount: 1500000 },
+          { label: "재활 치료 1주", amount: 1000000 },
+        ],
+        total: 13000000,
+        includes: ["수술 전 MRI", "1주 재활", "귀국 후 원격 진료"],
+      },
+    ],
+  },
+  {
+    id: "H003new",
+    name: "서울대학교병원",
+    area: "서울 종로 · 국립대병원",
+    rating: 4.9,
+    reviewCount: 1893,
+    badges: ["국립대병원", "로봇수술", "에스크로 제휴"],
+    treatments: [
+      {
+        deptId: "thyroid",
+        items: [
+          { label: "갑상선 절제술 (로봇수술)", amount: 7200000 },
+          { label: "마취·회복 관리", amount: 1000000 },
+          { label: "통역·코디네이터", amount: 800000 },
+        ],
+        total: 9000000,
+        includes: ["수술 전 정밀검사", "입원 3일", "귀국 후 원격 진료"],
+      },
+      {
+        deptId: "joint",
+        items: [
+          { label: "인공관절 치환술 (편측)", amount: 14000000 },
+          { label: "마취·수술 관리", amount: 2000000 },
+          { label: "재활 치료 2주", amount: 1500000 },
+        ],
+        total: 17500000,
+        includes: ["수술 전 정밀검사", "2주 재활", "귀국 후 원격 진료 3회"],
+      },
+      {
+        deptId: "spine",
+        items: [
+          { label: "척추 유합술 (단일 분절)", amount: 11500000 },
+          { label: "마취·회복 관리", amount: 1500000 },
+          { label: "재활·통역", amount: 1000000 },
+        ],
+        total: 14000000,
+        includes: ["수술 전 MRI", "1주 재활", "귀국 후 원격 진료"],
+      },
+      {
+        deptId: "checkup",
+        items: [
+          { label: "국립대 프리미엄 종합검진", amount: 1500000 },
+          { label: "영상검사 (MRI·CT)", amount: 350000 },
+          { label: "통역·결과 상담", amount: 150000 },
+        ],
+        total: 2000000,
+        includes: ["당일 결과 요약", "영문 리포트", "전문의 화상 상담"],
+      },
+    ],
+  },
+  {
+    id: "H004new",
+    name: "서울성모병원",
+    area: "서울 서초 · 가톨릭의료원",
+    rating: 4.8,
+    reviewCount: 1421,
+    badges: ["가톨릭의료원", "혈액종양 전문", "에스크로 제휴"],
+    treatments: [
+      {
+        deptId: "thyroid",
+        items: [
+          { label: "갑상선 절제술", amount: 6500000 },
+          { label: "마취·회복 관리", amount: 900000 },
+          { label: "통역·코디네이터", amount: 800000 },
+        ],
+        total: 8200000,
+        includes: ["수술 전 정밀검사", "입원 3일", "귀국 후 원격 진료"],
+      },
+      {
+        deptId: "dental",
+        items: [
+          { label: "임플란트 2개 (픽스처+크라운)", amount: 3800000 },
+          { label: "CT·진단 및 디자인", amount: 500000 },
+          { label: "사후관리·통역", amount: 500000 },
+        ],
+        total: 4800000,
+        includes: ["3D 진단", "임시 보철", "귀국 후 원격 점검"],
+      },
+      {
+        deptId: "checkup",
+        items: [
+          { label: "가톨릭 프리미엄 종합검진", amount: 1400000 },
+          { label: "영상검사 (MRI 포함)", amount: 350000 },
+          { label: "통역·결과 상담", amount: 150000 },
+        ],
+        total: 1900000,
+        includes: ["당일 결과 요약", "영문 리포트", "전문의 화상 상담"],
+      },
+    ],
+  },
+  {
+    id: "H005new",
+    name: "서울아산병원",
+    area: "서울 송파 · 울산의대",
+    rating: 5.0,
+    reviewCount: 2341,
+    badges: ["국내 1위 수술건수", "에스크로 제휴", "외국인 전담팀"],
+    treatments: [
+      {
+        deptId: "joint",
+        items: [
+          { label: "인공관절 치환술 (편측)", amount: 14500000 },
+          { label: "마취·수술 관리", amount: 2000000 },
+          { label: "재활 치료 2주", amount: 1500000 },
+        ],
+        total: 18000000,
+        includes: ["수술 전 정밀검사", "2주 재활", "귀국 후 원격 진료 3회"],
+      },
+      {
+        deptId: "spine",
+        items: [
+          { label: "척추 디스크 수술 (단일 분절)", amount: 12000000 },
+          { label: "마취·회복 관리", amount: 1800000 },
+          { label: "재활·통역", amount: 1200000 },
+        ],
+        total: 15000000,
+        includes: ["수술 전 MRI", "1주 재활", "귀국 후 원격 진료 2회"],
+      },
+      {
+        deptId: "thyroid",
+        items: [
+          { label: "갑상선 절제술 (아산 프로토콜)", amount: 7500000 },
+          { label: "마취·회복 관리", amount: 1200000 },
+          { label: "통역·코디네이터", amount: 800000 },
+        ],
+        total: 9500000,
+        includes: ["수술 전 정밀검사", "입원 4일", "귀국 후 원격 진료"],
+      },
+      {
+        deptId: "checkup",
+        items: [
+          { label: "아산 VIP 종합검진", amount: 1600000 },
+          { label: "영상검사 (MRI·CT)", amount: 400000 },
+          { label: "통역·결과 상담", amount: 200000 },
+        ],
+        total: 2200000,
+        includes: ["당일 결과 요약", "영문 리포트", "전문의 화상 상담"],
+      },
+      {
+        deptId: "derma",
+        items: [
+          { label: "피부 시술 패키지 (레이저·리프팅)", amount: 3200000 },
+          { label: "마취·약제", amount: 500000 },
+          { label: "사후관리 2회·통역", amount: 300000 },
+        ],
+        total: 4000000,
+        includes: ["피부 진단", "케어 키트", "화상 사후 상담 1회"],
+      },
+    ],
+  },
+  {
+    id: "H006new",
+    name: "삼성서울병원",
+    area: "서울 강남 · 삼성의료원",
+    rating: 4.9,
+    reviewCount: 1987,
+    badges: ["삼성의료원", "암·정밀의학", "에스크로 제휴"],
+    treatments: [
+      {
+        deptId: "derma",
+        items: [
+          { label: "피부 시술 패키지 (레이저·필러)", amount: 3400000 },
+          { label: "마취·약제", amount: 500000 },
+          { label: "사후관리 2회·통역", amount: 300000 },
+        ],
+        total: 4200000,
+        includes: ["피부 진단", "케어 키트", "화상 사후 상담 1회"],
+      },
+      {
+        deptId: "joint",
+        items: [
+          { label: "인공관절 치환술 (편측)", amount: 13500000 },
+          { label: "마취·수술 관리", amount: 2000000 },
+          { label: "재활 치료 2주", amount: 1500000 },
+        ],
+        total: 17000000,
+        includes: ["수술 전 정밀검사", "2주 재활", "귀국 후 원격 진료 2회"],
+      },
+      {
+        deptId: "spine",
+        items: [
+          { label: "척추 디스크 수술 (단일 분절)", amount: 11500000 },
+          { label: "마취·회복 관리", amount: 1800000 },
+          { label: "재활·통역", amount: 1200000 },
+        ],
+        total: 14500000,
+        includes: ["수술 전 MRI", "1주 재활", "귀국 후 원격 진료"],
+      },
+      {
+        deptId: "checkup",
+        items: [
+          { label: "삼성 프리미엄 종합검진", amount: 1550000 },
+          { label: "영상검사 (MRI·CT)", amount: 400000 },
+          { label: "통역·결과 상담", amount: 150000 },
+        ],
+        total: 2100000,
+        includes: ["당일 결과 요약", "영문 리포트", "전문의 화상 상담"],
+      },
+    ],
+  },
+  {
+    id: "H007new",
+    name: "KMI 한국의학연구소",
+    area: "서울 강남 · 검진 전문",
+    rating: 4.7,
+    reviewCount: 934,
+    badges: ["검진 전문기관", "당일 결과", "외국인 특화"],
+    treatments: [
+      {
+        deptId: "checkup",
+        items: [
+          { label: "외국인 특화 프리미엄 종합검진", amount: 850000 },
+          { label: "영상검사 (MRI·초음파)", amount: 250000 },
+          { label: "통역·결과 상담 (당일)", amount: 100000 },
+        ],
+        total: 1200000,
+        includes: ["당일 결과 요약", "영문/현지어 리포트", "전문의 화상 상담"],
+      },
+    ],
+  },
+  {
+    id: "H008new",
+    name: "강남차병원",
+    area: "서울 강남 · 미용·뷰티 전문",
+    rating: 4.7,
+    reviewCount: 763,
+    badges: ["뷰티·미용 전문", "에스크로 제휴", "한·영·중 통역"],
+    treatments: [
+      {
+        deptId: "derma",
+        items: [
+          { label: "뷰티 시술 패키지 (레이저·필러·보톡스)", amount: 2200000 },
+          { label: "마취·약제", amount: 400000 },
+          { label: "사후관리 3회·통역", amount: 200000 },
+        ],
+        total: 2800000,
+        includes: ["피부 진단", "케어 키트", "화상 사후 상담 2회"],
+      },
+      {
+        deptId: "eye",
+        items: [
+          { label: "시력교정 수술 (양안)", amount: 1700000 },
+          { label: "정밀 안검사", amount: 300000 },
+          { label: "사후관리·통역", amount: 200000 },
+        ],
+        total: 2200000,
+        includes: ["정밀 각막 검사", "보호 안경", "점안제 1개월"],
+      },
+      {
+        deptId: "dental",
+        items: [
+          { label: "임플란트 2개 (픽스처+크라운)", amount: 3100000 },
+          { label: "CT·진단 및 디자인", amount: 500000 },
+          { label: "사후관리·통역", amount: 300000 },
+        ],
+        total: 3900000,
+        includes: ["3D 진단", "임시 보철", "귀국 후 원격 점검"],
+      },
+    ],
+  },
+  {
+    id: "H009new",
+    name: "고려대학교안암병원",
+    area: "서울 성북 · 고려의대",
+    rating: 4.8,
+    reviewCount: 1123,
+    badges: ["고려의대", "에스크로 제휴", "외국인 코디"],
+    treatments: [
+      {
+        deptId: "thyroid",
+        items: [
+          { label: "갑상선 절제술", amount: 6300000 },
+          { label: "마취·회복 관리", amount: 900000 },
+          { label: "통역·코디네이터", amount: 800000 },
+        ],
+        total: 8000000,
+        includes: ["수술 전 초음파·정밀검사", "입원 3일", "귀국 후 원격 진료"],
+      },
+      {
+        deptId: "joint",
+        items: [
+          { label: "인공관절 치환술 (편측)", amount: 12500000 },
+          { label: "마취·수술 관리", amount: 1800000 },
+          { label: "재활 치료 2주", amount: 1200000 },
+        ],
+        total: 15500000,
+        includes: ["수술 전 정밀검사", "2주 재활", "귀국 후 원격 진료 2회"],
+      },
+      {
+        deptId: "checkup",
+        items: [
+          { label: "고려대 프리미엄 종합검진", amount: 1200000 },
+          { label: "영상검사 (MRI 포함)", amount: 350000 },
+          { label: "통역·결과 상담", amount: 150000 },
+        ],
+        total: 1700000,
+        includes: ["당일 결과 요약", "영문 리포트", "전문의 화상 상담"],
+      },
+    ],
+  },
+  {
+    id: "H010new",
+    name: "한양대학교병원",
+    area: "서울 성동 · 한양의대",
+    rating: 4.7,
+    reviewCount: 892,
+    badges: ["한양의대", "에스크로 제휴"],
+    treatments: [
+      {
+        deptId: "derma",
+        items: [
+          { label: "피부 시술 패키지 (레이저·리프팅)", amount: 2600000 },
+          { label: "마취·약제", amount: 400000 },
+          { label: "사후관리 2회·통역", amount: 200000 },
+        ],
+        total: 3200000,
+        includes: ["피부 진단", "케어 키트", "화상 사후 상담 1회"],
+      },
+      {
+        deptId: "eye",
+        items: [
+          { label: "시력교정 수술 (양안)", amount: 2000000 },
+          { label: "정밀 안검사", amount: 400000 },
+          { label: "사후관리·통역", amount: 200000 },
+        ],
+        total: 2600000,
+        includes: ["정밀 각막 검사", "보호 안경", "점안제 1개월"],
+      },
+      {
+        deptId: "dental",
+        items: [
+          { label: "임플란트 2개 (픽스처+크라운)", amount: 3200000 },
+          { label: "CT·진단 및 디자인", amount: 500000 },
+          { label: "사후관리·통역", amount: 300000 },
+        ],
+        total: 4000000,
+        includes: ["3D 진단", "임시 보철", "귀국 후 원격 점검"],
+      },
+      {
+        deptId: "joint",
+        items: [
+          { label: "인공관절 치환술 (편측)", amount: 11500000 },
+          { label: "마취·수술 관리", amount: 1800000 },
+          { label: "재활 치료 2주", amount: 1200000 },
+        ],
+        total: 14500000,
+        includes: ["수술 전 정밀검사", "2주 재활", "귀국 후 원격 진료"],
+      },
+    ],
+  },
 ];
 
 export const findHospital = (id: string | null) =>
@@ -688,3 +1089,141 @@ export const REVIEWS: Review[] = [
     verified: true,
   },
 ];
+
+// ============================================================
+// 호텔 데이터 (10개 협력 호텔 · 각 3개 룸 타입)
+// ============================================================
+
+export type HotelRoomType = {
+  id: string;
+  name: string;
+  perNight: number;
+  desc: string;
+};
+
+export type HotelOption = {
+  id: string;
+  name: string;
+  area: string;
+  rating: number;
+  rooms: HotelRoomType[];
+};
+
+export const HOTELS: HotelOption[] = [
+  {
+    id: "HT001",
+    name: "파라다이스 시티 서울",
+    area: "서울 강남",
+    rating: 4.8,
+    rooms: [
+      { id: "standard", name: "스탠다드", perNight: 280000, desc: "1인 · 기본 객실" },
+      { id: "deluxe", name: "디럭스", perNight: 450000, desc: "넓은 1인실 · 시티뷰" },
+      { id: "suite", name: "스위트", perNight: 850000, desc: "보호자 동반 · 2베드룸" },
+    ],
+  },
+  {
+    id: "HT002",
+    name: "롯데호텔 서울",
+    area: "서울 을지로",
+    rating: 4.7,
+    rooms: [
+      { id: "standard", name: "스탠다드", perNight: 240000, desc: "1인 · 기본 객실" },
+      { id: "deluxe", name: "디럭스", perNight: 380000, desc: "넓은 1인실 · 시티뷰" },
+      { id: "suite", name: "스위트", perNight: 720000, desc: "보호자 동반 · 2베드룸" },
+    ],
+  },
+  {
+    id: "HT003",
+    name: "신라호텔 서울",
+    area: "서울 장충동",
+    rating: 4.9,
+    rooms: [
+      { id: "standard", name: "스탠다드", perNight: 320000, desc: "1인 · 기본 객실" },
+      { id: "deluxe", name: "디럭스", perNight: 500000, desc: "넓은 1인실 · 시티뷰" },
+      { id: "suite", name: "스위트", perNight: 950000, desc: "보호자 동반 · 2베드룸" },
+    ],
+  },
+  {
+    id: "HT004",
+    name: "포시즌스 호텔 서울",
+    area: "서울 광화문",
+    rating: 5.0,
+    rooms: [
+      { id: "standard", name: "스탠다드", perNight: 380000, desc: "1인 · 기본 객실" },
+      { id: "deluxe", name: "디럭스", perNight: 580000, desc: "넓은 1인실 · 시티뷰" },
+      { id: "suite", name: "스위트", perNight: 1200000, desc: "보호자 동반 · 2베드룸" },
+    ],
+  },
+  {
+    id: "HT005",
+    name: "JW 메리어트 서울",
+    area: "서울 반포",
+    rating: 4.8,
+    rooms: [
+      { id: "standard", name: "스탠다드", perNight: 290000, desc: "1인 · 기본 객실" },
+      { id: "deluxe", name: "디럭스", perNight: 440000, desc: "넓은 1인실 · 시티뷰" },
+      { id: "suite", name: "스위트", perNight: 820000, desc: "보호자 동반 · 2베드룸" },
+    ],
+  },
+  {
+    id: "HT006",
+    name: "콘래드 서울",
+    area: "서울 여의도",
+    rating: 4.8,
+    rooms: [
+      { id: "standard", name: "스탠다드", perNight: 270000, desc: "1인 · 기본 객실" },
+      { id: "deluxe", name: "디럭스", perNight: 420000, desc: "넓은 1인실 · 시티뷰" },
+      { id: "suite", name: "스위트", perNight: 780000, desc: "보호자 동반 · 2베드룸" },
+    ],
+  },
+  {
+    id: "HT007",
+    name: "더 스탠다드 강남",
+    area: "서울 강남",
+    rating: 4.6,
+    rooms: [
+      { id: "standard", name: "스탠다드", perNight: 180000, desc: "1인 · 기본 객실" },
+      { id: "deluxe", name: "디럭스", perNight: 280000, desc: "넓은 1인실 · 시티뷰" },
+      { id: "suite", name: "스위트", perNight: 500000, desc: "보호자 동반 · 2베드룸" },
+    ],
+  },
+  {
+    id: "HT008",
+    name: "그랜드 힐튼 서울",
+    area: "서울 홍은동",
+    rating: 4.5,
+    rooms: [
+      { id: "standard", name: "스탠다드", perNight: 200000, desc: "1인 · 기본 객실" },
+      { id: "deluxe", name: "디럭스", perNight: 310000, desc: "넓은 1인실 · 시티뷰" },
+      { id: "suite", name: "스위트", perNight: 560000, desc: "보호자 동반 · 2베드룸" },
+    ],
+  },
+  {
+    id: "HT009",
+    name: "노보텔 강남",
+    area: "서울 강남",
+    rating: 4.5,
+    rooms: [
+      { id: "standard", name: "스탠다드", perNight: 170000, desc: "1인 · 기본 객실" },
+      { id: "deluxe", name: "디럭스", perNight: 260000, desc: "넓은 1인실 · 시티뷰" },
+      { id: "suite", name: "스위트", perNight: 480000, desc: "보호자 동반 · 2베드룸" },
+    ],
+  },
+  {
+    id: "HT010",
+    name: "레스케이프 호텔",
+    area: "서울 중구",
+    rating: 4.7,
+    rooms: [
+      { id: "standard", name: "스탠다드", perNight: 230000, desc: "1인 · 기본 객실" },
+      { id: "deluxe", name: "디럭스", perNight: 360000, desc: "넓은 1인실 · 시티뷰" },
+      { id: "suite", name: "스위트", perNight: 680000, desc: "보호자 동반 · 2베드룸" },
+    ],
+  },
+];
+
+export const findHotel = (id: string | null) =>
+  HOTELS.find((h) => h.id === id) ?? null;
+
+export const findHotelRoom = (hotel: HotelOption, roomId: string) =>
+  hotel.rooms.find((r) => r.id === roomId) ?? hotel.rooms[0];

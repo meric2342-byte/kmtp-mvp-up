@@ -168,6 +168,32 @@ export default function PatientJourney({
             </div>
           </div>
 
+          {/* 문의 채널 */}
+          <div className="rounded-2xl border border-gray-100 bg-white p-5">
+            <h3 className="mb-3 text-sm font-bold text-gray-700">문의 채널</h3>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href="https://wa.me/821012345678?text=KMTP%20문의드립니다"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-green-600"
+              >
+                📱 WhatsApp으로 문의하기
+              </a>
+              <a
+                href="https://open.kakao.com/o/kmtp"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-bold text-gray-800 transition-colors hover:bg-yellow-500"
+              >
+                💬 카카오톡 문의하기
+              </a>
+            </div>
+            <p className="mt-2 text-xs text-gray-400">
+              한국어 · 영어 · 중국어 지원 · 평일 09:00–18:00
+            </p>
+          </div>
+
           {/* 타임라인 */}
           <div className="rounded-2xl border border-gray-100 bg-white p-6">
             <div className="mb-4 flex items-center justify-between">

@@ -1,19 +1,19 @@
 "use client";
 
-// 환자(patient) 영역 — 6단계 국적·시술→병원·견적→날짜슬롯→호텔서비스→에스크로→신뢰
+// 환자(patient) 영역 — 5단계: 시술·일정 → 호텔·서비스 → 견적요청 → 에스크로 → 신뢰
 import { useState } from "react";
 import type { Account } from "@/lib/auth";
 import TopBar from "@/components/TopBar";
 import PatientJourney from "@/components/PatientJourney";
 import KakaoChat from "@/components/KakaoChat";
 import Stepper from "@/components/Stepper";
-import StepNationalityTreatments from "@/components/StepNationalityTreatments";
-import StepHospitalQuote from "@/components/StepHospitalQuote";
-import StepSlot from "@/components/StepSlot";
+import StepSelectHospital from "@/components/StepSelectHospital";
 import StepHotelServices from "@/components/StepHotelServices";
+import StepQuoteRequest from "@/components/StepQuoteRequest";
 import StepEscrow from "@/components/StepEscrow";
 import StepTrust from "@/components/StepTrust";
-import { findHospital, hospitalTotalQuote } from "@/lib/data";
+import { HOSPITALS, findHotel, findHotelRoom } from "@/lib/data";
+import type { TreatmentBooking, ServiceItem } from "@/lib/booking";
 
 type Props = {
   account: Account;
@@ -26,42 +26,38 @@ export default function PatientApp({ account, onLogout }: Props) {
   const [tab, setTab] = useState<Tab>("booking");
   const [step, setStep] = useState(1);
 
-  // Step 1: 국적 + 시술 다중선택
+  // Step 1: 국적 + 병원·시술·날짜
   const [nationality, setNationality] = useState("");
-  const [deptIds, setDeptIds] = useState<string[]>([]);
+  const [bookings, setBookings] = useState<TreatmentBooking[]>([]);
 
-  // Step 2: 병원 선택
-  const [hospitalId, setHospitalId] = useState<string | null>(null);
-
-  // Step 3: 날짜·슬롯
-  const [slotDate, setSlotDate] = useState<string | null>(null);
-  const [slotTime, setSlotTime] = useState<string | null>(null);
-
-  // Step 4: 호텔
-  const [roomId, setRoomId] = useState("standard");
+  // Step 2: 호텔 + 서비스
+  const [hotelId, setHotelId] = useState<string | null>(null);
+  const [hotelRoomId, setHotelRoomId] = useState("standard");
   const [nights, setNights] = useState(3);
+  const [services, setServices] = useState<ServiceItem[]>([]);
 
   // 흐름 제어
   const [flowPending, setFlowPending] = useState(false);
 
-  const hospital = findHospital(hospitalId);
-  const treatmentTotal = hospital ? hospitalTotalQuote(hospital, deptIds) : 0;
+  // 총 시술 금액 계산
+  const treatmentTotal = bookings.reduce((sum, b) => {
+    const hospital = HOSPITALS.find((h) => h.id === b.hospitalId);
+    const t = hospital?.treatments.find((tr) => tr.deptId === b.deptId);
+    return sum + (t?.total ?? 0);
+  }, 0);
 
-  function toggleDept(id: string) {
-    setDeptIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-    setHospitalId(null); // 시술 바뀌면 병원 재선택
-  }
+  // 호텔 합계 계산
+  const selectedHotel = findHotel(hotelId);
+  const selectedRoom = selectedHotel ? findHotelRoom(selectedHotel, hotelRoomId) : null;
+  const hotelTotal = selectedRoom ? selectedRoom.perNight * nights : 0;
 
   function handleRestart() {
     setNationality("");
-    setDeptIds([]);
-    setHospitalId(null);
-    setSlotDate(null);
-    setSlotTime(null);
-    setRoomId("standard");
+    setBookings([]);
+    setHotelId(null);
+    setHotelRoomId("standard");
     setNights(3);
+    setServices([]);
     setStep(1);
     setTab("booking");
     setFlowPending(false);
@@ -73,11 +69,11 @@ export default function PatientApp({ account, onLogout }: Props) {
         account={account}
         onLogout={onLogout}
         right={
-          nationality || deptIds.length > 0 ? (
+          nationality || bookings.length > 0 ? (
             <div className="text-right text-xs text-gray-500">
               {nationality && <span>{nationality}</span>}
-              {nationality && deptIds.length > 0 && " · "}
-              {deptIds.length > 0 && <span>{deptIds.length}개 시술</span>}
+              {nationality && bookings.length > 0 && " · "}
+              {bookings.length > 0 && <span>{bookings.length}개 시술</span>}
             </div>
           ) : undefined
         }
@@ -122,7 +118,7 @@ export default function PatientApp({ account, onLogout }: Props) {
             }
             onGoTrust={() => {
               setTab("booking");
-              setStep(6);
+              setStep(5);
             }}
           />
         )}
@@ -139,75 +135,69 @@ export default function PatientApp({ account, onLogout }: Props) {
               <Stepper current={step} />
             </div>
 
-            {/* 1단계: 국적 + 시술 다중선택 */}
+            {/* 1단계: 시술·일정 선택 */}
             {step === 1 && (
-              <StepNationalityTreatments
+              <StepSelectHospital
                 nationality={nationality}
-                deptIds={deptIds}
                 onSelectNationality={setNationality}
-                onToggleDept={toggleDept}
+                bookings={bookings}
+                onUpdateBookings={setBookings}
                 onNext={() => setStep(2)}
               />
             )}
 
-            {/* 2단계: 병원 선택 + 가격잠금 견적 */}
+            {/* 2단계: 호텔 + 부가서비스 */}
             {step === 2 && (
-              <StepHospitalQuote
-                deptIds={deptIds}
-                hospitalId={hospitalId}
-                onSelectHospital={setHospitalId}
+              <StepHotelServices
+                account={account}
+                hotelId={hotelId}
+                hotelRoomId={hotelRoomId}
+                nights={nights}
+                services={services}
+                onSelectHotel={setHotelId}
+                onSelectRoom={setHotelRoomId}
+                onChangeNights={setNights}
+                onUpdateServices={setServices}
                 onPrev={() => setStep(1)}
                 onNext={() => setStep(3)}
               />
             )}
 
-            {/* 3단계: 날짜·슬롯 */}
+            {/* 3단계: 견적 요청 */}
             {step === 3 && (
-              <StepSlot
-                hospital={hospital}
-                slotDate={slotDate}
-                slotTime={slotTime}
-                onSelectDate={(d) => { setSlotDate(d); setSlotTime(null); }}
-                onSelectTime={setSlotTime}
+              <StepQuoteRequest
+                account={account}
+                nationality={nationality}
+                bookings={bookings}
+                hotelId={hotelId}
+                hotelRoomId={hotelRoomId}
+                nights={nights}
+                services={services}
                 onPrev={() => setStep(2)}
                 onNext={() => setStep(4)}
               />
             )}
 
-            {/* 4단계: 호텔 + 부가서비스 */}
+            {/* 4단계: 에스크로 결제 */}
             {step === 4 && (
-              <StepHotelServices
-                account={account}
-                roomId={roomId}
-                nights={nights}
-                onSelectRoom={setRoomId}
-                onChangeNights={setNights}
-                onPrev={() => setStep(3)}
-                onNext={() => setStep(5)}
-              />
-            )}
-
-            {/* 5단계: 에스크로 결제 */}
-            {step === 5 && hospital && (
               <StepEscrow
-                hospital={hospital}
-                deptIds={deptIds}
-                treatmentTotal={treatmentTotal}
-                slotDate={slotDate}
-                slotTime={slotTime}
-                roomId={roomId}
+                bookings={bookings}
+                totalAmount={treatmentTotal}
+                hotelId={hotelId}
+                hotelRoomId={hotelRoomId}
                 nights={nights}
-                onPrev={() => setStep(4)}
+                hotelTotal={hotelTotal}
+                onPrev={() => setStep(3)}
                 onNext={() => {
-                  setStep(6);
+                  setStep(5);
                   setTab("journey");
                   setFlowPending(true);
                 }}
               />
             )}
 
-            {/* 6단계: 신뢰·후기 */}
-            {step === 6 && (
+            {/* 5단계: 신뢰·후기 */}
+            {step === 5 && (
               <StepTrust
                 onPrev={() => setTab("journey")}
                 onRestart={handleRestart}

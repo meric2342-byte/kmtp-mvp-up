@@ -1,23 +1,39 @@
 "use client";
 
-// 5단계: 에스크로 결제 (mock) — 실제 결제 없음
+// 4단계: 에스크로 결제 (mock) — 실제 결제 없음
 import { useState } from "react";
 import {
   formatKRW,
   REFUND_POLICY,
   DEPARTMENTS,
-  findRoom,
-  type HospitalOption,
+  findHotel,
+  findHotelRoom,
 } from "@/lib/data";
+import type { TreatmentBooking } from "@/lib/booking";
+
+// 병원 이름 조회
+import { HOSPITALS } from "@/lib/data";
+
+function hospitalName(id: string) {
+  return HOSPITALS.find((h) => h.id === id)?.name ?? id;
+}
+
+function deptName(id: string) {
+  return DEPARTMENTS.find((d) => d.id === id)?.name ?? id;
+}
+
+function getQuoteTotal(hospitalId: string, deptId: string): number {
+  const hospital = HOSPITALS.find((h) => h.id === hospitalId);
+  return hospital?.treatments.find((t) => t.deptId === deptId)?.total ?? 0;
+}
 
 type Props = {
-  hospital: HospitalOption;
-  deptIds: string[];
-  treatmentTotal: number;
-  slotDate: string | null;
-  slotTime: string | null;
-  roomId: string;
+  bookings: TreatmentBooking[];
+  totalAmount: number; // treatmentTotal
+  hotelId: string | null;
+  hotelRoomId: string;
   nights: number;
+  hotelTotal: number;
   onPrev: () => void;
   onNext: () => void;
 };
@@ -28,27 +44,22 @@ const ESCROW_STAGES = [
   { key: "settle", title: "병원 정산", desc: "확인 완료 시 병원에 지급" },
 ];
 
-function deptName(id: string) {
-  return DEPARTMENTS.find((d) => d.id === id)?.name ?? id;
-}
-
 export default function StepEscrow({
-  hospital,
-  deptIds,
-  treatmentTotal,
-  slotDate,
-  slotTime,
-  roomId,
+  bookings,
+  totalAmount,
+  hotelId,
+  hotelRoomId,
   nights,
+  hotelTotal,
   onPrev,
   onNext,
 }: Props) {
   const [deposited, setDeposited] = useState(false);
   const [agreed, setAgreed] = useState(false);
 
-  const room = findRoom(roomId);
-  const roomTotal = room.perNight * nights;
-  const grandTotal = treatmentTotal + roomTotal;
+  const selectedHotel = findHotel(hotelId);
+  const selectedRoom = selectedHotel ? findHotelRoom(selectedHotel, hotelRoomId) : null;
+  const grandTotal = totalAmount + hotelTotal;
 
   return (
     <div className="flex flex-col gap-6">
@@ -64,13 +75,27 @@ export default function StepEscrow({
       {/* 예약 요약 */}
       <div className="rounded-2xl border border-gray-200 bg-white p-5 flex flex-col gap-2 text-sm">
         <p className="font-bold text-gray-700 mb-1">예약 요약</p>
-        <Row label="병원" value={hospital.name} />
-        <Row label="시술" value={deptIds.map(deptName).join(", ")} />
-        <Row label="예약 일시" value={slotDate && slotTime ? `${slotDate} ${slotTime}` : "-"} />
-        <Row label={`호텔 (${room.name} × ${nights}박)`} value={formatKRW(roomTotal)} />
+        {bookings.map((b) => (
+          <div key={b.id} className="flex justify-between">
+            <span className="text-gray-500">
+              {deptName(b.deptId)} · {hospitalName(b.hospitalId)}
+            </span>
+            <span className="font-semibold text-gray-800">
+              {formatKRW(getQuoteTotal(b.hospitalId, b.deptId))}
+            </span>
+          </div>
+        ))}
+        {selectedHotel && selectedRoom && (
+          <div className="flex justify-between">
+            <span className="text-gray-500">
+              {selectedHotel.name} · {selectedRoom.name} × {nights}박
+            </span>
+            <span className="font-semibold text-gray-800">{formatKRW(hotelTotal)}</span>
+          </div>
+        )}
         <div className="mt-2 border-t border-gray-100 pt-2 flex justify-between font-bold text-primary-dark">
           <span>시술 견적 합계</span>
-          <span>{formatKRW(treatmentTotal)}</span>
+          <span>{formatKRW(totalAmount)}</span>
         </div>
         <div className="flex justify-between text-base font-black text-primary">
           <span>총 예치 금액</span>
@@ -148,15 +173,6 @@ export default function StepEscrow({
           내 여정으로 →
         </button>
       </div>
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between">
-      <dt className="text-gray-500">{label}</dt>
-      <dd className="font-semibold text-gray-800">{value}</dd>
     </div>
   );
 }

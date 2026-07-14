@@ -24,7 +24,6 @@ export default function Home() {
     return (
       <Intro
         onStart={() => setEntered(true)}
-        onAbout={() => setShowAbout(true)}
       />
     );
   }
