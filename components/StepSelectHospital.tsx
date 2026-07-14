@@ -1,9 +1,10 @@
 "use client";
 
-// 1단계: 국적 → 시술 선택 → 병원 선택 → 날짜 5개(병원 컨펌) → 목록 추가 (복수 가능)
+// 1단계: 국적 → 과 선택 → 개별 시술 선택 → 병원 선택 → 날짜 5개
 import { useState } from "react";
-import { HOSPITALS, DEPARTMENTS, formatKRW } from "@/lib/data";
+import { HOSPITALS, DEPARTMENTS, formatKRW, formatFX } from "@/lib/data";
 import { WORLD_COUNTRIES } from "@/lib/countries";
+import { PROCEDURES, proceduresByDept, type Procedure } from "@/lib/procedures";
 import type { TreatmentBooking } from "@/lib/booking";
 
 export type { TreatmentBooking };
@@ -16,14 +17,30 @@ type Props = {
   onNext: () => void;
 };
 
-// 09:00 ~ 17:30, 30분 단위
+type FormStep = "dept" | "proc" | "hospital" | "dates";
+
 const TIME_OPTIONS: string[] = [];
 for (let h = 9; h <= 17; h++) {
   TIME_OPTIONS.push(`${String(h).padStart(2, "0")}:00`);
   if (h < 17) TIME_OPTIONS.push(`${String(h).padStart(2, "0")}:30`);
 }
 
-const dept = (id: string) => DEPARTMENTS.find((d) => d.id === id);
+function priceLabel(p: Procedure): string {
+  if (p.quote) return "상담 견적";
+  if (p.priceMaxKRW) return `${formatKRW(p.priceKRW)} ~ ${formatKRW(p.priceMaxKRW)}`;
+  return formatKRW(p.priceKRW);
+}
+
+function priceFX(p: Procedure): string {
+  if (p.quote || p.priceKRW === 0) return "";
+  return formatFX(p.priceMaxKRW ?? p.priceKRW);
+}
+
+// 병원이 해당 deptId 시술을 제공하는지 (treatments 기반 자동 매핑)
+function hospitalOffersDept(hospitalId: string, deptId: string): boolean {
+  const h = HOSPITALS.find((h) => h.id === hospitalId);
+  return h?.treatments.some((t) => t.deptId === deptId) ?? false;
+}
 
 export default function StepSelectHospital({
   nationality,
@@ -32,86 +49,87 @@ export default function StepSelectHospital({
   onUpdateBookings,
   onNext,
 }: Props) {
-  // 현재 추가 중인 선택 상태
-  const [step, setStep] = useState<"dept" | "hospital" | "dates">("dept");
-  const [selDepts, setSelDepts] = useState<string[]>([]);
-  const [selHospital, setSelHospital] = useState<string | null>(null);
+  // 폼 내부 단계
+  const [formStep, setFormStep] = useState<FormStep>("dept");
+
+  // 현재 추가 중인 선택값
+  const [selDeptId, setSelDeptId] = useState<string | null>(null);
+  const [selProc, setSelProc] = useState<Procedure | null>(null);
+  const [selHospitalId, setSelHospitalId] = useState<string | null>(null);
   const [dates, setDates] = useState<string[]>(["", "", "", "", ""]);
   const [time, setTime] = useState("");
 
-  // 선택 시술 기준으로 지원 병원 필터
-  const availableHospitals =
-    selDepts.length === 0
-      ? []
-      : HOSPITALS.filter((h) =>
-          selDepts.some((deptId) => h.treatments.find((t) => t.deptId === deptId)),
-        );
+  // 과 선택된 시술 목록
+  const procs = selDeptId ? proceduresByDept(selDeptId) : [];
 
-  function toggleDept(id: string) {
-    setSelDepts((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-    setSelHospital(null);
-  }
+  // 시술 선택된 병원 목록 (해당 deptId 지원 병원만)
+  const availableHospitals = selProc
+    ? HOSPITALS.filter((h) => hospitalOffersDept(h.id, selProc.deptId))
+    : [];
 
   function chosenDates() {
     return dates.filter(Boolean);
   }
 
-  function getQuote(hospitalId: string, deptId: string) {
-    return HOSPITALS.find((h) => h.id === hospitalId)?.treatments.find(
-      (t) => t.deptId === deptId,
-    );
+  function reset() {
+    setFormStep("dept");
+    setSelDeptId(null);
+    setSelProc(null);
+    setSelHospitalId(null);
+    setDates(["", "", "", "", ""]);
+    setTime("");
   }
 
   function addToList() {
-    if (!selHospital || selDepts.length === 0 || chosenDates().length === 0 || !time) return;
-    const hospital = HOSPITALS.find((h) => h.id === selHospital)!;
-    // 이 병원에서 지원하는 선택 시술만 추가
-    const supported = selDepts.filter((deptId) =>
-      hospital.treatments.find((t) => t.deptId === deptId),
-    );
-    const newBookings = supported.map((deptId) => ({
-      id: `${selHospital}-${deptId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      hospitalId: selHospital,
-      deptId,
+    if (!selProc || !selHospitalId || chosenDates().length === 0 || !time) return;
+    const newBooking: TreatmentBooking = {
+      id: `${selHospitalId}-${selProc.id}-${Date.now()}`,
+      hospitalId: selHospitalId,
+      deptId: selProc.deptId,
+      procedureId: selProc.id,
+      procedureName: selProc.name,
+      procedurePriceKRW: selProc.priceKRW,
+      procedurePriceMaxKRW: selProc.priceMaxKRW,
       dates: chosenDates(),
       time,
-    }));
-    onUpdateBookings([...bookings, ...newBookings]);
-    // 초기화
-    setSelDepts([]);
-    setSelHospital(null);
-    setDates(["", "", "", "", ""]);
-    setTime("");
-    setStep("dept");
+    };
+    onUpdateBookings([...bookings, newBooking]);
+    reset();
   }
 
   function removeBooking(id: string) {
     onUpdateBookings(bookings.filter((b) => b.id !== id));
   }
 
-  const totalQuote = bookings.reduce((sum, b) => {
-    const q = getQuote(b.hospitalId, b.deptId);
-    return sum + (q?.total ?? 0);
-  }, 0);
-
-  const canNext =
-    nationality.trim() !== "" &&
-    bookings.length > 0;
-
   const canAdd =
-    selHospital !== null &&
-    selDepts.length > 0 &&
+    selHospitalId !== null &&
+    selProc !== null &&
     chosenDates().length >= 1 &&
     time !== "";
+
+  const canNext = nationality.trim() !== "" && bookings.length > 0;
+
+  const STEPS: { key: FormStep; label: string }[] = [
+    { key: "dept", label: "① 진료과" },
+    { key: "proc", label: "② 시술" },
+    { key: "hospital", label: "③ 병원" },
+    { key: "dates", label: "④ 날짜·시간" },
+  ];
+
+  const stepReachable = (s: FormStep) => {
+    if (s === "dept") return true;
+    if (s === "proc") return selDeptId !== null;
+    if (s === "hospital") return selProc !== null;
+    if (s === "dates") return selHospitalId !== null;
+    return false;
+  };
 
   return (
     <div className="flex flex-col gap-8">
       <div>
         <h2 className="text-xl font-bold text-primary-dark sm:text-2xl">시술 · 병원 · 일정</h2>
         <p className="mt-1.5 text-sm text-gray-500">
-          국적 선택 후, 원하는 시술과 병원·날짜를 추가해주세요. (복수 추가 가능)
+          국적 선택 후 진료과→시술→병원→날짜 순으로 추가하세요. 복수 추가 가능합니다.
         </p>
       </div>
 
@@ -123,211 +141,232 @@ export default function StepSelectHospital({
           onChange={(e) => onSelectNationality(e.target.value)}
           className={inp}
         >
-          <option value="">국적을 선택해주세요</option>
+          <option value="">국적 선택</option>
           {WORLD_COUNTRIES.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
       </section>
 
-      {/* 추가 폼 */}
-      <div className="rounded-2xl border-2 border-primary/20 bg-white">
-        {/* 진행 탭 */}
+      {/* 추가 폼 카드 */}
+      <div className="rounded-2xl border-2 border-primary/20 bg-white overflow-hidden">
+        {/* 탭 */}
         <div className="flex border-b border-gray-100">
-          {(["dept", "hospital", "dates"] as const).map((s, i) => {
-            const labels = ["① 시술 선택", "② 병원 선택", "③ 날짜·시간"];
-            const reachable =
-              s === "dept" ||
-              (s === "hospital" && selDepts.length > 0) ||
-              (s === "dates" && selHospital !== null);
+          {STEPS.map((s) => {
+            const ok = stepReachable(s.key);
             return (
               <button
-                key={s}
+                key={s.key}
                 type="button"
-                onClick={() => reachable && setStep(s)}
-                disabled={!reachable}
-                className={`flex-1 py-3 text-xs font-bold transition-colors ${
-                  step === s
-                    ? "border-b-2 border-primary text-primary"
-                    : reachable
+                onClick={() => ok && setFormStep(s.key)}
+                disabled={!ok}
+                className={`flex-1 py-3 text-[11px] font-bold transition-colors sm:text-xs ${
+                  formStep === s.key
+                    ? "border-b-2 border-primary text-primary bg-primary-light/30"
+                    : ok
                     ? "text-gray-500 hover:text-primary"
                     : "cursor-not-allowed text-gray-300"
                 }`}
               >
-                {labels[i]}
+                {s.label}
               </button>
             );
           })}
         </div>
 
         <div className="p-4">
-          {/* Step A: 시술 선택 */}
-          {step === "dept" && (
+          {/* ① 진료과 선택 */}
+          {formStep === "dept" && (
             <div>
-              <p className="mb-3 text-xs font-semibold text-gray-500">
-                원하는 시술을 선택하세요 (복수 선택 가능)
-              </p>
+              <p className="mb-3 text-xs font-semibold text-gray-500">진료과를 선택하세요</p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {DEPARTMENTS.map((d) => {
-                  const sel = selDepts.includes(d.id);
+                  // 해당 과에 시술이 있는 경우만 표시
+                  const hasProcedures = proceduresByDept(d.id).length > 0;
                   return (
                     <button
                       key={d.id}
                       type="button"
-                      onClick={() => toggleDept(d.id)}
-                      className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2.5 text-left text-sm transition-all ${
-                        sel
+                      onClick={() => {
+                        setSelDeptId(d.id);
+                        setSelProc(null);
+                        setSelHospitalId(null);
+                        setFormStep("proc");
+                      }}
+                      className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2.5 text-left transition-all ${
+                        selDeptId === d.id
                           ? "border-primary bg-primary-light font-bold text-primary-dark"
-                          : "border-gray-200 bg-white text-gray-700 hover:border-primary/40"
+                          : hasProcedures
+                          ? "border-gray-200 bg-white text-gray-700 hover:border-primary/40"
+                          : "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"
                       }`}
+                      disabled={!hasProcedures}
                     >
                       <span className="text-base">{d.icon}</span>
                       <span className="text-xs leading-tight">{d.name}</span>
-                      {sel && <span className="ml-auto text-primary text-xs">✓</span>}
                     </button>
                   );
                 })}
               </div>
-              {selDepts.length > 0 && (
-                <div className="mt-3 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setStep("hospital")}
-                    className="rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white hover:bg-primary-dark"
-                  >
-                    병원 선택 →
-                  </button>
-                </div>
-              )}
             </div>
           )}
 
-          {/* Step B: 병원 선택 */}
-          {step === "hospital" && (
+          {/* ② 개별 시술 선택 */}
+          {formStep === "proc" && selDeptId && (
             <div>
+              <button
+                type="button"
+                onClick={() => setFormStep("dept")}
+                className="mb-3 flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                ← {DEPARTMENTS.find((d) => d.id === selDeptId)?.name}
+              </button>
               <p className="mb-3 text-xs font-semibold text-gray-500">
-                선택한 시술을 제공하는 병원을 선택하세요
+                시술을 선택하세요 (금액은 참고용 목업입니다)
+              </p>
+              <div className="flex flex-col gap-2">
+                {procs.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      setSelProc(p);
+                      setSelHospitalId(null);
+                      setFormStep("hospital");
+                    }}
+                    className={`flex items-start justify-between gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+                      selProc?.id === p.id
+                        ? "border-primary bg-primary-light"
+                        : "border-gray-200 bg-white hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-800">{p.name}</p>
+                      {p.note && <p className="text-[11px] text-gray-400 mt-0.5">{p.note}</p>}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className={`text-sm font-black ${p.quote ? "text-amber-600" : "text-primary"}`}>
+                        {priceLabel(p)}
+                      </p>
+                      {!p.quote && p.priceKRW > 0 && (
+                        <p className="text-[10px] text-gray-400 mt-0.5">{priceFX(p)}</p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ③ 병원 선택 */}
+          {formStep === "hospital" && selProc && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setFormStep("proc")}
+                className="mb-3 flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                ← {selProc.name}
+              </button>
+              <p className="mb-3 text-xs font-semibold text-gray-500">
+                이 시술을 제공하는 병원을 선택하세요
               </p>
               {availableHospitals.length === 0 ? (
-                <p className="py-4 text-center text-sm text-gray-400">해당 시술을 제공하는 병원이 없습니다.</p>
+                <p className="text-center text-sm text-gray-400 py-4">해당 시술 제공 병원이 없습니다.</p>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {availableHospitals.map((h) => {
-                    const isSel = h.id === selHospital;
-                    const supported = selDepts.filter((deptId) =>
-                      h.treatments.find((t) => t.deptId === deptId),
-                    );
-                    const subtotal = supported.reduce((sum, deptId) => {
-                      const t = h.treatments.find((tr) => tr.deptId === deptId);
-                      return sum + (t?.total ?? 0);
-                    }, 0);
-                    return (
-                      <button
-                        key={h.id}
-                        type="button"
-                        onClick={() => { setSelHospital(h.id); setStep("dates"); }}
-                        className={`rounded-xl border-2 p-3 text-left transition-all ${
-                          isSel
-                            ? "border-primary bg-primary-light"
-                            : "border-gray-200 bg-white hover:border-primary/40"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="text-sm font-bold text-gray-800">{h.name}</p>
-                            <p className="text-xs text-gray-400">{h.area}</p>
-                            <p className="mt-1 text-xs text-gray-500">
-                              제공 시술: {supported.map((id) => dept(id)?.name ?? id).join(", ")}
-                            </p>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <p className="text-xs text-amber-500 font-semibold">★ {h.rating}</p>
-                            <p className="text-xs font-black text-primary mt-0.5">
-                              {formatKRW(subtotal)}
-                            </p>
-                          </div>
+                  {availableHospitals.map((h) => (
+                    <button
+                      key={h.id}
+                      type="button"
+                      onClick={() => { setSelHospitalId(h.id); setFormStep("dates"); }}
+                      className={`flex items-start justify-between gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+                        selHospitalId === h.id
+                          ? "border-primary bg-primary-light"
+                          : "border-gray-200 bg-white hover:border-primary/40"
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-gray-800">{h.name}</p>
+                        <p className="text-xs text-gray-400">{h.area}</p>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {h.badges.slice(0, 2).map((b) => (
+                            <span
+                              key={b}
+                              className="rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-semibold text-primary-dark"
+                            >
+                              {b}
+                            </span>
+                          ))}
                         </div>
-                      </button>
-                    );
-                  })}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs text-amber-500 font-semibold">★ {h.rating}</p>
+                        <p className="text-[11px] text-gray-400">후기 {h.reviewCount.toLocaleString()}건</p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
           )}
 
-          {/* Step C: 날짜·시간 선택 */}
-          {step === "dates" && selHospital && (
+          {/* ④ 날짜·시간 */}
+          {formStep === "dates" && selProc && selHospitalId && (
             <div>
-              {(() => {
-                const hospital = HOSPITALS.find((h) => h.id === selHospital)!;
-                const supported = selDepts.filter((deptId) =>
-                  hospital.treatments.find((t) => t.deptId === deptId),
-                );
-                return (
-                  <>
-                    <div className="mb-3 rounded-lg bg-primary-light/50 px-3 py-2">
-                      <p className="text-xs font-bold text-primary-dark">{hospital.name}</p>
-                      <p className="text-xs text-gray-600">
-                        시술: {supported.map((id) => dept(id)?.name ?? id).join(", ")}
-                      </p>
-                    </div>
+              <div className="mb-3 rounded-lg bg-primary-light/50 px-3 py-2 text-xs">
+                <p className="font-bold text-primary-dark">
+                  {HOSPITALS.find((h) => h.id === selHospitalId)?.name}
+                </p>
+                <p className="text-gray-600 mt-0.5">
+                  {selProc.name} · <span className="font-semibold text-primary">{priceLabel(selProc)}</span>
+                </p>
+              </div>
 
-                    <p className="mb-2 text-xs font-semibold text-gray-600">
-                      희망 날짜 (최대 5개 — 병원이 하나로 확정합니다)
-                    </p>
-                    <div className="flex flex-col gap-2 mb-4">
-                      {[0, 1, 2, 3, 4].map((i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <span className="w-12 shrink-0 text-xs text-gray-400">
-                            {i + 1}지망
-                          </span>
-                          <input
-                            type="date"
-                            value={dates[i] ?? ""}
-                            min={new Date().toISOString().slice(0, 10)}
-                            onChange={(e) => {
-                              const next = [...dates];
-                              next[i] = e.target.value;
-                              setDates(next);
-                            }}
-                            className={`${inp} flex-1`}
-                          />
-                        </div>
-                      ))}
-                    </div>
+              <p className="mb-2 text-xs font-semibold text-gray-600">
+                희망 날짜 (최대 5개 — 병원이 하나로 확정합니다)
+              </p>
+              <div className="flex flex-col gap-2 mb-4">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="w-12 shrink-0 text-xs text-gray-400">{i + 1}지망</span>
+                    <input
+                      type="date"
+                      value={dates[i] ?? ""}
+                      min={new Date().toISOString().slice(0, 10)}
+                      onChange={(e) => {
+                        const next = [...dates];
+                        next[i] = e.target.value;
+                        setDates(next);
+                      }}
+                      className={`${inp} flex-1`}
+                    />
+                  </div>
+                ))}
+              </div>
 
-                    <p className="mb-2 text-xs font-semibold text-gray-600">희망 시간</p>
-                    <select
-                      value={time}
-                      onChange={(e) => setTime(e.target.value)}
-                      className={`${inp} mb-4`}
-                    >
-                      <option value="">시간 선택</option>
-                      {TIME_OPTIONS.map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
+              <p className="mb-2 text-xs font-semibold text-gray-600">희망 시간</p>
+              <select
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className={`${inp} mb-4`}
+              >
+                <option value="">시간 선택</option>
+                {TIME_OPTIONS.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
 
-                    {chosenDates().length > 0 && (
-                      <p className="mb-3 text-xs text-primary-dark">
-                        ✓ {chosenDates().length}개 날짜 선택됨
-                        {time && ` · 희망 시간 ${time}`}
-                      </p>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={addToList}
-                      disabled={!canAdd}
-                      className={`w-full rounded-xl py-3 font-bold text-white transition-colors ${
-                        canAdd ? "bg-primary hover:bg-primary-dark" : "cursor-not-allowed bg-gray-300"
-                      }`}
-                    >
-                      + 목록에 추가
-                    </button>
-                  </>
-                );
-              })()}
+              <button
+                type="button"
+                onClick={addToList}
+                disabled={!canAdd}
+                className={`w-full rounded-xl py-3 font-bold text-white transition-colors ${
+                  canAdd ? "bg-primary hover:bg-primary-dark" : "cursor-not-allowed bg-gray-300"
+                }`}
+              >
+                + 목록에 추가
+              </button>
             </div>
           )}
         </div>
@@ -340,7 +379,7 @@ export default function StepSelectHospital({
             <h3 className="text-sm font-semibold text-gray-700">📋 선택 목록</h3>
             <button
               type="button"
-              onClick={() => { setStep("dept"); setSelDepts([]); setSelHospital(null); setDates(["","","","",""]); setTime(""); }}
+              onClick={reset}
               className="text-xs font-semibold text-primary hover:underline"
             >
               + 시술 더 추가
@@ -349,8 +388,11 @@ export default function StepSelectHospital({
           <div className="flex flex-col gap-2">
             {bookings.map((b) => {
               const hospital = HOSPITALS.find((h) => h.id === b.hospitalId);
-              const d = dept(b.deptId);
-              const q = getQuote(b.hospitalId, b.deptId);
+              const dept = DEPARTMENTS.find((d) => d.id === b.deptId);
+              const proc = PROCEDURES.find((p) => p.id === b.procedureId);
+              const priceStr = proc
+                ? priceLabel(proc)
+                : formatKRW(b.procedurePriceKRW);
               return (
                 <div
                   key={b.id}
@@ -358,16 +400,14 @@ export default function StepSelectHospital({
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-gray-800">
-                      {d?.icon} {d?.name}
+                      {dept?.icon} {b.procedureName}
                     </p>
                     <p className="text-xs text-gray-500">{hospital?.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      희망 날짜: {b.dates.filter(Boolean).join(" / ")}
+                      희망: {b.dates.filter(Boolean).join(" / ")}
                       {b.time && ` · ${b.time}`}
                     </p>
-                    <p className="text-xs font-bold text-primary mt-1">
-                      {formatKRW(q?.total ?? 0)}
-                    </p>
+                    <p className="mt-1 text-xs font-black text-primary">{priceStr}</p>
                   </div>
                   <button
                     type="button"
@@ -384,7 +424,9 @@ export default function StepSelectHospital({
           {/* 총 견적 */}
           <div className="mt-3 flex items-center justify-between rounded-xl bg-primary-light px-4 py-3">
             <span className="text-sm font-semibold text-primary-dark">총 예상 시술 견적</span>
-            <span className="text-lg font-black text-primary">{formatKRW(totalQuote)}</span>
+            <span className="text-lg font-black text-primary">
+              {formatKRW(bookings.reduce((s, b) => s + b.procedurePriceKRW, 0))}
+            </span>
           </div>
         </section>
       )}
@@ -404,7 +446,7 @@ export default function StepSelectHospital({
       </div>
       {!canNext && (
         <p className="text-center text-xs text-gray-400">
-          {nationality === "" ? "국적을 먼저 선택해주세요" : "시술·병원·날짜를 1개 이상 추가해주세요"}
+          {nationality === "" ? "국적을 먼저 선택해주세요" : "시술을 1개 이상 추가해주세요"}
         </p>
       )}
     </div>

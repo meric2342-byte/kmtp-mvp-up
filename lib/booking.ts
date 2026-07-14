@@ -1,14 +1,20 @@
 // ============================================================
-// 예약 관련 공유 타입 — 모든 스텝 컴포넌트에서 공통 사용
+// 예약 관련 공유 타입
 // ============================================================
 
 export type TreatmentBooking = {
   id: string;
   hospitalId: string;
   deptId: string;
-  dates: string[];  // 희망 날짜 최대 5개 (병원이 하나로 컨펌)
-  time: string;     // 희망 시간대
-  confirmedDate?: string; // 병원 확정 날짜
+  // 개별 시술 (procedures.ts 기반)
+  procedureId: string;
+  procedureName: string;
+  procedurePriceKRW: number;
+  procedurePriceMaxKRW?: number;
+  // 날짜 (최대 5개, 병원 컨펌)
+  dates: string[];
+  time: string;
+  confirmedDate?: string;
 };
 
 export type ServiceItem = {

@@ -81,10 +81,13 @@ export default function StepQuoteRequest({
     const profile = loadProfile();
     const patientName = fullName(profile) || account.name || "환자";
 
-    const items: { service_type: string; details: string }[] = [
+    const items: { service_type: string; details: string; procedure_id?: string; procedure_name?: string; price_krw?: number }[] = [
       ...bookings.map((b) => ({
         service_type: deptName(b.deptId),
-        details: `${hospitalName(b.hospitalId)} · 희망날짜: ${(b.dates ?? []).filter(Boolean).join("/").slice(0, 30)} · ${formatKRW(getQuoteTotal(b.hospitalId, b.deptId))}`,
+        details: `${hospitalName(b.hospitalId)} · ${b.procedureName} · 희망: ${(b.dates ?? []).filter(Boolean).join("/").slice(0, 30)} · ${formatKRW(b.procedurePriceKRW)}`,
+        procedure_id: b.procedureId,
+        procedure_name: b.procedureName,
+        price_krw: b.procedurePriceKRW,
       })),
       ...(selectedHotel && selectedRoom
         ? [
@@ -140,18 +143,15 @@ export default function StepQuoteRequest({
             className="flex items-start justify-between gap-3 py-1 border-b border-gray-100 last:border-b-0"
           >
             <div>
-              <span className="font-semibold text-gray-800">
-                {deptName(b.deptId)}
-              </span>
-              <span className="ml-2 text-gray-400 text-xs">
-                {hospitalName(b.hospitalId)}
-              </span>
+              <span className="font-semibold text-gray-800">{b.procedureName}</span>
+              <span className="ml-2 text-xs text-gray-400">{deptName(b.deptId)}</span>
+              <p className="text-xs text-gray-500">{hospitalName(b.hospitalId)}</p>
               <p className="text-xs text-gray-400 mt-0.5">
-                {(b.dates ?? []).filter(Boolean).join(", ")} · {b.time}
+                희망: {(b.dates ?? []).filter(Boolean).join(", ")} · {b.time}
               </p>
             </div>
             <span className="font-bold text-primary shrink-0">
-              {formatKRW(getQuoteTotal(b.hospitalId, b.deptId))}
+              {formatKRW(b.procedurePriceKRW)}
             </span>
           </div>
         ))}
