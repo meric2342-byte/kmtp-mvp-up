@@ -1,11 +1,94 @@
 "use client";
 
-// 2단계: 호텔 선택 (아코디언) + 숙박 일수 + 부가서비스 (택시/배차/통역)
-// Google Maps 자동완성: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY 설정 시 활성화 (현재 텍스트 입력 fallback)
-import { useState } from "react";
+// 2단계: 호텔 선택 (아코디언) + 숙박 일수 + 부가서비스 (택시/배차 Google Maps + 통역)
+import { useState, useEffect, useRef } from "react";
 import type { Account } from "@/lib/auth";
 import { HOTELS, formatKRW, findHotel, findHotelRoom } from "@/lib/data";
 import type { ServiceItem } from "@/lib/booking";
+
+// ── Google Maps 자동완성 ──
+type WindowWithGoogle = Window & {
+  google?: {
+    maps?: {
+      places?: {
+        Autocomplete: new (
+          el: HTMLInputElement,
+          opts?: Record<string, unknown>,
+        ) => {
+          addListener: (
+            ev: string,
+            cb: () => void,
+          ) => { remove?: () => void };
+          getPlace: () => {
+            formatted_address?: string;
+            name?: string;
+          };
+        };
+      };
+    };
+  };
+};
+
+function useGoogleMaps(): boolean {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!key) return;
+    const w = window as WindowWithGoogle;
+    if (w.google?.maps?.places) { setReady(true); return; }
+    const existing = document.getElementById("gmaps-script");
+    if (existing) { existing.addEventListener("load", () => setReady(true)); return; }
+    const s = document.createElement("script");
+    s.id = "gmaps-script";
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&language=ko`;
+    s.async = true;
+    s.onload = () => setReady(true);
+    document.head.appendChild(s);
+  }, []);
+  return ready;
+}
+
+function AddressInput({
+  value,
+  onChange,
+  placeholder,
+  ready,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  ready: boolean;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!ready || !ref.current) return;
+    const places = (window as WindowWithGoogle).google?.maps?.places;
+    if (!places) return;
+    const ac = new places.Autocomplete(ref.current, {
+      fields: ["formatted_address", "name"],
+      componentRestrictions: { country: "kr" },
+    });
+    const listener = ac.addListener("place_changed", () => {
+      const place = ac.getPlace();
+      const addr = place?.formatted_address ?? "";
+      const name = place?.name ?? "";
+      const label =
+        name && addr && !addr.includes(name) ? `${name} (${addr})` : addr || name;
+      if (label) onChange(label);
+    });
+    return () => { listener?.remove?.(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+  return (
+    <input
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={inp}
+    />
+  );
+}
 
 export type { ServiceItem };
 
@@ -49,6 +132,7 @@ export default function StepHotelServices({
   onPrev,
   onNext,
 }: Props) {
+  const mapsReady = useGoogleMaps();
   const [expandedHotel, setExpandedHotel] = useState<string | null>(hotelId);
   const [showAddForm, setShowAddForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -284,17 +368,17 @@ export default function StepHotelServices({
 
             {form.type !== "통역" ? (
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <input
+                <AddressInput
+                  ready={mapsReady}
                   value={form.from}
-                  onChange={(e) => setForm((f) => ({ ...f, from: e.target.value }))}
+                  onChange={(v) => setForm((f) => ({ ...f, from: v }))}
                   placeholder="출발지 (예: 인천국제공항)"
-                  className={inp}
                 />
-                <input
+                <AddressInput
+                  ready={mapsReady}
                   value={form.to}
-                  onChange={(e) => setForm((f) => ({ ...f, to: e.target.value }))}
+                  onChange={(v) => setForm((f) => ({ ...f, to: v }))}
                   placeholder="도착지 (예: 서울아산병원)"
-                  className={inp}
                 />
                 <input
                   type="date"

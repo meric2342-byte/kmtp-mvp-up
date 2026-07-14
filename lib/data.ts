@@ -119,19 +119,29 @@ export type Department = {
 
 export const DEPARTMENTS: Department[] = [
   // Full Lock — 총액 고정
-  { id: "derma", name: "피부과", icon: "✨", lockType: "full", desc: "미용·피부 시술", recoveryNights: 7 },
-  { id: "dental", name: "치과", icon: "🦷", lockType: "full", desc: "임플란트·교정", recoveryNights: 5 },
-  { id: "eye", name: "안과", icon: "👁️", lockType: "full", desc: "시력교정·백내장", recoveryNights: 3 },
-  { id: "checkup", name: "종합검진", icon: "🩺", lockType: "full", desc: "건강검진 패키지", recoveryNights: 2 },
+  { id: "derma", name: "피부과", icon: "✨", lockType: "full", desc: "미용·피부·레이저 시술", recoveryNights: 7 },
+  { id: "dental", name: "치과", icon: "🦷", lockType: "full", desc: "임플란트·교정·미백", recoveryNights: 5 },
+  { id: "eye", name: "안과", icon: "👁️", lockType: "full", desc: "라식·라섹·백내장", recoveryNights: 3 },
+  { id: "checkup", name: "종합검진", icon: "🩺", lockType: "full", desc: "프리미엄 건강검진 패키지", recoveryNights: 2 },
+  { id: "plastic", name: "성형외과", icon: "💎", lockType: "full", desc: "안면·코·가슴 성형", recoveryNights: 10 },
+  { id: "hair", name: "모발이식", icon: "💆", lockType: "full", desc: "FUE·FUT 모발이식", recoveryNights: 5 },
+  { id: "weightloss", name: "비만클리닉", icon: "⚡", lockType: "full", desc: "체중감량·지방흡입", recoveryNights: 7 },
+  { id: "derm_adv", name: "피부과 (고급)", icon: "🌟", lockType: "full", desc: "리프팅·필러·보톡스 프리미엄", recoveryNights: 5 },
 
   // Range Lock — 범위 보장 + 변동 룰
-  { id: "thyroid", name: "갑상선", icon: "🦋", lockType: "range", desc: "갑상선 결절·암", recoveryNights: 14 },
-  { id: "spine", name: "척추", icon: "🦴", lockType: "range", desc: "디스크·협착증", recoveryNights: 21 },
-  { id: "joint", name: "관절·정형외과", icon: "🦵", lockType: "range", desc: "인공관절·재건", recoveryNights: 21 },
+  { id: "thyroid", name: "갑상선", icon: "🦋", lockType: "range", desc: "갑상선 결절·암 수술", recoveryNights: 14 },
+  { id: "spine", name: "척추", icon: "🦴", lockType: "range", desc: "디스크·협착증 수술", recoveryNights: 21 },
+  { id: "joint", name: "관절·정형외과", icon: "🦵", lockType: "range", desc: "인공관절·연골 재건", recoveryNights: 21 },
+  { id: "cancer", name: "암 치료", icon: "🎗️", lockType: "range", desc: "암 수술·항암·방사선", recoveryNights: 30 },
+  { id: "cardio", name: "심장내과", icon: "❤️", lockType: "range", desc: "심장 스텐트·판막 수술", recoveryNights: 21 },
+  { id: "neuro", name: "신경외과", icon: "🧠", lockType: "range", desc: "뇌·신경 수술·종양", recoveryNights: 21 },
+  { id: "fertility", name: "난임·불임", icon: "🌸", lockType: "range", desc: "시험관아기·난임 치료", recoveryNights: 7 },
+  { id: "rehab", name: "재활의학", icon: "🏃", lockType: "range", desc: "수술 후 재활·물리치료", recoveryNights: 14 },
 
   // No Lock — 상담 견적
-  { id: "emergency", name: "응급의학", icon: "🚑", lockType: "none", desc: "응급·중환자", recoveryNights: 10 },
   { id: "transplant", name: "장기이식", icon: "🫀", lockType: "none", desc: "신장·간 이식", recoveryNights: 28 },
+  { id: "emergency", name: "응급의학", icon: "🚑", lockType: "none", desc: "응급·중환자", recoveryNights: 10 },
+  { id: "internal", name: "내과 일반", icon: "🏥", lockType: "none", desc: "내과 진단·치료·입원", recoveryNights: 7 },
 ];
 
 // 환율 안내 (견적 화면 공통 문구)
@@ -263,6 +273,26 @@ export const HOSPITALS: HospitalOption[] = [
         total: 7800000,
         includes: ["수술 전 정밀검사", "1주 회복 관리", "귀국 후 원격 진료"],
       },
+      {
+        deptId: "plastic",
+        items: [
+          { label: "안면 성형 (눈·코 기본)", amount: 3500000 },
+          { label: "마취·수술 관리", amount: 700000 },
+          { label: "사후관리 3회·통역", amount: 500000 },
+        ],
+        total: 4700000,
+        includes: ["수술 전 상담", "사후관리 3회", "귀국 후 화상 상담"],
+      },
+      {
+        deptId: "hair",
+        items: [
+          { label: "모발이식 (FUE 2,000모)", amount: 2800000 },
+          { label: "마취·시술 관리", amount: 500000 },
+          { label: "사후관리·통역", amount: 300000 },
+        ],
+        total: 3600000,
+        includes: ["모발 진단", "사후 두피 케어 키트", "결과 사진 관리"],
+      },
     ],
   },
   {
@@ -293,6 +323,36 @@ export const HOSPITALS: HospitalOption[] = [
         ],
         total: 2400000,
         includes: ["정밀 각막 검사", "보호 안경", "점안제 1개월"],
+      },
+      {
+        deptId: "plastic",
+        items: [
+          { label: "안면 성형 (눈·코·윤곽)", amount: 4200000 },
+          { label: "마취·수술 관리", amount: 800000 },
+          { label: "사후관리 5회·통역", amount: 600000 },
+        ],
+        total: 5600000,
+        includes: ["수술 전 3D 시뮬레이션", "사후관리 5회", "귀국 후 화상 상담 2회"],
+      },
+      {
+        deptId: "hair",
+        items: [
+          { label: "모발이식 (FUE 2,500모)", amount: 3200000 },
+          { label: "마취·시술 관리", amount: 600000 },
+          { label: "사후관리·통역", amount: 400000 },
+        ],
+        total: 4200000,
+        includes: ["모발 진단", "두피 케어 키트", "결과 관리 1개월"],
+      },
+      {
+        deptId: "derm_adv",
+        items: [
+          { label: "리프팅·필러·보톡스 프리미엄 패키지", amount: 3500000 },
+          { label: "마취·약제", amount: 400000 },
+          { label: "사후관리 5회·통역", amount: 500000 },
+        ],
+        total: 4400000,
+        includes: ["피부 정밀 진단", "맞춤 케어 키트", "화상 사후 상담 3회"],
       },
     ],
   },
@@ -335,6 +395,16 @@ export const HOSPITALS: HospitalOption[] = [
         ],
         total: 8400000,
         includes: ["수술 전 초음파", "입원 3일", "귀국 후 원격 진료"],
+      },
+      {
+        deptId: "rehab",
+        items: [
+          { label: "수술 후 재활 집중 프로그램 (4주)", amount: 3500000 },
+          { label: "물리치료 20회", amount: 1200000 },
+          { label: "통역·코디", amount: 500000 },
+        ],
+        total: 5200000,
+        includes: ["개인 재활 계획", "운동 처방", "귀국 후 원격 상담"],
       },
     ],
   },
@@ -387,6 +457,36 @@ export const HOSPITALS: HospitalOption[] = [
         total: 13000000,
         includes: ["수술 전 MRI", "1주 재활", "귀국 후 원격 진료"],
       },
+      {
+        deptId: "cancer",
+        items: [
+          { label: "암 절제 수술 (표준)", amount: 18000000 },
+          { label: "마취·입원 관리 (7일)", amount: 3500000 },
+          { label: "통역·코디네이터", amount: 1000000 },
+        ],
+        total: 22500000,
+        includes: ["수술 전 정밀검사", "항암 상담", "귀국 후 원격 진료 3회"],
+      },
+      {
+        deptId: "cardio",
+        items: [
+          { label: "심장 스텐트 시술 (단일 혈관)", amount: 8000000 },
+          { label: "마취·입원 관리 (5일)", amount: 2500000 },
+          { label: "통역·코디네이터", amount: 800000 },
+        ],
+        total: 11300000,
+        includes: ["수술 전 심장 정밀검사", "입원 5일", "귀국 후 원격 진료"],
+      },
+      {
+        deptId: "neuro",
+        items: [
+          { label: "신경외과 수술 (기본)", amount: 15000000 },
+          { label: "마취·수술 관리", amount: 3000000 },
+          { label: "재활·통역", amount: 1500000 },
+        ],
+        total: 19500000,
+        includes: ["수술 전 MRI/CT", "집중 재활", "귀국 후 원격 진료 3회"],
+      },
     ],
   },
   {
@@ -436,6 +536,46 @@ export const HOSPITALS: HospitalOption[] = [
         ],
         total: 2000000,
         includes: ["당일 결과 요약", "영문 리포트", "전문의 화상 상담"],
+      },
+      {
+        deptId: "cancer",
+        items: [
+          { label: "암 절제 수술 (로봇)", amount: 22000000 },
+          { label: "마취·입원 관리 (7일)", amount: 4000000 },
+          { label: "통역·코디네이터", amount: 1000000 },
+        ],
+        total: 27000000,
+        includes: ["수술 전 정밀검사", "로봇수술 최소침습", "귀국 후 원격 진료 4회"],
+      },
+      {
+        deptId: "cardio",
+        items: [
+          { label: "심장 판막 치환술", amount: 18000000 },
+          { label: "마취·입원 관리 (7일)", amount: 3500000 },
+          { label: "통역·코디네이터", amount: 1000000 },
+        ],
+        total: 22500000,
+        includes: ["수술 전 심장정밀검사", "입원 7일", "귀국 후 원격 진료 3회"],
+      },
+      {
+        deptId: "neuro",
+        items: [
+          { label: "신경외과 수술 (정밀)", amount: 20000000 },
+          { label: "마취·수술 관리", amount: 4000000 },
+          { label: "재활·통역", amount: 2000000 },
+        ],
+        total: 26000000,
+        includes: ["수술 전 MRI/CT/PET", "집중 재활", "귀국 후 원격 진료 4회"],
+      },
+      {
+        deptId: "fertility",
+        items: [
+          { label: "시험관아기 시술 (1주기)", amount: 4500000 },
+          { label: "약제·호르몬 치료", amount: 1200000 },
+          { label: "통역·코디네이터", amount: 600000 },
+        ],
+        total: 6300000,
+        includes: ["사전 검사", "배아 동결 보관 1년", "귀국 후 원격 상담"],
       },
     ],
   },

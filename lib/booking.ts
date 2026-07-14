@@ -6,8 +6,9 @@ export type TreatmentBooking = {
   id: string;
   hospitalId: string;
   deptId: string;
-  date: string;
-  time: string;
+  dates: string[];  // 희망 날짜 최대 5개 (병원이 하나로 컨펌)
+  time: string;     // 희망 시간대
+  confirmedDate?: string; // 병원 확정 날짜
 };
 
 export type ServiceItem = {

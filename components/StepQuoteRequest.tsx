@@ -84,7 +84,7 @@ export default function StepQuoteRequest({
     const items: { service_type: string; details: string }[] = [
       ...bookings.map((b) => ({
         service_type: deptName(b.deptId),
-        details: `${hospitalName(b.hospitalId)} · ${b.date} ${b.time} · ${formatKRW(getQuoteTotal(b.hospitalId, b.deptId))}`,
+        details: `${hospitalName(b.hospitalId)} · 희망날짜: ${(b.dates ?? []).filter(Boolean).join("/").slice(0, 30)} · ${formatKRW(getQuoteTotal(b.hospitalId, b.deptId))}`,
       })),
       ...(selectedHotel && selectedRoom
         ? [
@@ -147,7 +147,7 @@ export default function StepQuoteRequest({
                 {hospitalName(b.hospitalId)}
               </span>
               <p className="text-xs text-gray-400 mt-0.5">
-                {b.date} {b.time}
+                {(b.dates ?? []).filter(Boolean).join(", ")} · {b.time}
               </p>
             </div>
             <span className="font-bold text-primary shrink-0">
