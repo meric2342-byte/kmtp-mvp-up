@@ -84,7 +84,7 @@ export default function StepQuoteRequest({
     const items: { service_type: string; details: string; procedure_id?: string; procedure_name?: string; price_krw?: number }[] = [
       ...bookings.map((b) => ({
         service_type: deptName(b.deptId),
-        details: `${hospitalName(b.hospitalId)} · ${b.procedureName} · 희망: ${(b.dates ?? []).filter(Boolean).join("/").slice(0, 30)} · ${formatKRW(b.procedurePriceKRW)}`,
+        details: `${hospitalName(b.hospitalId)} · ${b.procedureName} · 희망: ${b.dateSlots?.map(s => s.date).filter(Boolean).join('/').slice(0, 30)} · ${formatKRW(b.procedurePriceKRW)}`,
         procedure_id: b.procedureId,
         procedure_name: b.procedureName,
         price_krw: b.procedurePriceKRW,
@@ -147,7 +147,7 @@ export default function StepQuoteRequest({
               <span className="ml-2 text-xs text-gray-400">{deptName(b.deptId)}</span>
               <p className="text-xs text-gray-500">{hospitalName(b.hospitalId)}</p>
               <p className="text-xs text-gray-400 mt-0.5">
-                희망: {(b.dates ?? []).filter(Boolean).join(", ")} · {b.time}
+                희망: {(b.dateSlots ?? []).map(s => s.date + ' ' + s.time).filter(Boolean).join(' / ')}
               </p>
             </div>
             <span className="font-bold text-primary shrink-0">

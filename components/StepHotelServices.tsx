@@ -449,13 +449,25 @@ export default function StepHotelServices({
         >
           ← 이전
         </button>
-        <button
-          type="button"
-          onClick={onNext}
-          className="rounded-xl bg-primary px-8 py-3 font-bold text-white transition-colors hover:bg-primary-dark"
-        >
-          다음 →
-        </button>
+        <div className="flex items-center gap-3">
+          {/* 호텔 미선택 시 건너뛰기 허용 */}
+          {!hotelId && (
+            <button
+              type="button"
+              onClick={onNext}
+              className="rounded-xl border-2 border-gray-300 px-5 py-3 text-sm font-semibold text-gray-500 hover:border-primary/40"
+            >
+              건너뛰기 →
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onNext}
+            className="rounded-xl bg-primary px-8 py-3 font-bold text-white transition-colors hover:bg-primary-dark"
+          >
+            {hotelId ? "다음 →" : "선택 완료 →"}
+          </button>
+        </div>
       </div>
     </div>
   );
