@@ -41,7 +41,23 @@ export default function Login({ onLogin }: Props) {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const account = await authenticate(loginId, password);
+    const id = loginId.trim().toLowerCase();
+
+    let account = await authenticate(id, password);
+
+    // 로그인 실패 시: 서버 재시작으로 DB가 초기화됐을 수 있으므로
+    // 자동 재등록을 시도한다. 재등록 성공 = 계정이 없었던 것 → 재로그인.
+    // 재등록 실패(409 중복) = 비밀번호가 틀린 것 → 오류 표시.
+    if (!account) {
+      try {
+        await api.auth.registerPatient({ login_id: id, password, name: id });
+        // 재등록 성공 → 다시 로그인
+        account = await authenticate(id, password);
+      } catch {
+        // 재등록 실패(이미 있는 계정) = 비밀번호 오류
+      }
+    }
+
     setBusy(false);
     if (!account) {
       setError("아이디 또는 비밀번호가 올바르지 않습니다.");

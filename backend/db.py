@@ -154,7 +154,34 @@ def init_db(reset: bool = False) -> None:
     if already == 0:
         _seed(conn)
 
+    # DB 초기화 여부와 무관하게 실계정을 항상 보장
+    _ensure_users(conn)
+
     conn.close()
+
+
+def _ensure_users(conn: sqlite3.Connection) -> None:
+    """서버 재시작 후 DB가 초기화돼도 실사용 계정을 항상 복원한다.
+    INSERT OR IGNORE 로 중복 삽입을 방지하므로 몇 번 호출해도 안전하다."""
+    now = _iso(datetime.now())
+    real_users = [
+        # (login_id, password, role, name, sub, patient_id)
+        ("meric", "0715", "patient", "meric", "환자", "P_meric"),
+    ]
+    for login_id, pw, role, name, sub, pid in real_users:
+        # 환자 행이 없으면 생성
+        conn.execute(
+            "INSERT OR IGNORE INTO patients (id, name) VALUES (?, ?)",
+            (pid, name),
+        )
+        # 계정이 없으면 생성
+        conn.execute(
+            "INSERT OR IGNORE INTO accounts "
+            "(login_id, password, role, name, sub, ref_id, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (login_id, pw, role, name, sub, pid, now),
+        )
+    conn.commit()
 
 
 def _seed(conn: sqlite3.Connection) -> None:
