@@ -9,6 +9,7 @@ import { STAGES } from "@/lib/journey";
 import { useAsync } from "@/lib/useAsync";
 import JourneyTimeline from "@/components/JourneyTimeline";
 import BackendNotice from "@/components/BackendNotice";
+import { COORDINATOR } from "@/lib/services";
 
 const stageLabel = (key: string | null) =>
   STAGES.find((s) => s.key === key)?.label ?? "";
@@ -171,9 +172,12 @@ export default function PatientJourney({
           {/* 문의 채널 */}
           <div className="rounded-2xl border border-gray-100 bg-white p-5">
             <h3 className="mb-3 text-sm font-bold text-gray-700">문의 채널</h3>
+            <p className="mb-2 text-xs text-gray-500">
+              담당: {COORDINATOR.name} ({COORDINATOR.title})
+            </p>
             <div className="flex flex-wrap gap-2">
               <a
-                href="https://wa.me/821012345678?text=KMTP%20문의드립니다"
+                href={`${COORDINATOR.whatsapp}?text=KMTP%20문의드립니다`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-green-600"
@@ -190,7 +194,7 @@ export default function PatientJourney({
               </a>
             </div>
             <p className="mt-2 text-xs text-gray-400">
-              한국어 · 영어 · 중국어 지원 · 평일 09:00–18:00
+              📞 {COORDINATOR.phone} · 한국어 · 영어 · 중국어 지원 · 평일 09:00–18:00
             </p>
           </div>
 

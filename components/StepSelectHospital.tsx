@@ -65,10 +65,7 @@ function priceDisplay(proc: Procedure, hospitalId: string | null) {
 
 function procPriceLabel(p: Procedure): string {
   if (p.quote) return "상담 견적 — 의료기록 검토 후 범위 제시";
-  if (p.priceMaxKRW) {
-    return `${formatKRW(p.priceKRW)}부터 · ${formatFX(p.priceKRW)} · 병원 확정 시 잠금가 제공`;
-  }
-  return `${formatKRW(p.priceKRW)} · ${formatFX(p.priceKRW)} · 병원 확정 시 잠금가 제공`;
+  return "병원 선택 후 해당 병원 가격 표시";
 }
 
 export default function StepSelectHospital({
@@ -267,7 +264,7 @@ export default function StepSelectHospital({
                 onChange={(e) => setQuery(e.target.value)}
                 className={`${inp} mb-3`}
               />
-              <p className="mb-3 text-xs font-semibold text-gray-500">시술을 선택하세요</p>
+              <p className="mb-3 text-xs font-semibold text-gray-500">{selDeptId === "checkup" ? "검진을 선택하세요" : "시술을 선택하세요"}</p>
               <div className="flex flex-col gap-2">
                 {filteredProcs.map((p) => (
                   <button key={p.id} type="button"

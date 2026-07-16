@@ -1090,11 +1090,11 @@ export type CaseManager = {
 export const CASE_MANAGERS: CaseManager[] = [
   {
     id: "CM001",
-    name: "김지수 코디네이터",
-    photo: "/placeholder/cm-jisu.jpg",
+    name: "김도균 대표",
+    photo: "/placeholder/coordinator-kim.jpg",
     languages: ["한국어", "영어", "중국어"],
-    waPhone: "821012345678",
-    slaNote: "평일 09:00–18:00 · 긴급 시 24시간 이내 응답",
+    waPhone: "821055057004",
+    slaNote: "총괄 코디네이터 · 픽업·배차·통역·여정 전담 · 평일 09:00–18:00",
   },
 ];
 

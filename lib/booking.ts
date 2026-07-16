@@ -18,7 +18,7 @@ export type TreatmentBooking = {
 
 export type ServiceItem = {
   id: string;
-  type: "택시" | "배차" | "통역";
+  type: "공항픽업" | "배차" | "통역";
   from: string;
   to: string;
   date: string;
@@ -30,6 +30,9 @@ export type ServiceItem = {
   interpLang?: string;
   interpDuration?: string;
   priceKRW?: number;
+  startTime?: string;    // 통역 시작 시간
+  endTime?: string;      // 통역 종료 시간
+  interpPlace?: string;  // 통역 장소
 };
 
 // Top-level booking session state (not per-procedure)
