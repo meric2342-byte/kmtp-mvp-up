@@ -3,10 +3,11 @@
 
 const STEPS = [
   { n: 1, label: "시술·일정" },
-  { n: 2, label: "호텔·서비스" },
-  { n: 3, label: "견적 요청" },
-  { n: 4, label: "에스크로" },
-  { n: 5, label: "신뢰·후기" },
+  { n: 2, label: "숙소" },
+  { n: 3, label: "부가서비스" },
+  { n: 4, label: "견적요청" },
+  { n: 5, label: "에스크로" },
+  { n: 6, label: "신뢰·후기" },
 ];
 
 export default function Stepper({ current }: { current: number }) {

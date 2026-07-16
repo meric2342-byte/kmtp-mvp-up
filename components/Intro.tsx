@@ -1,6 +1,8 @@
 "use client";
 
 // 인트로/랜딩 — 리디자인된 다크 히어로 + 신뢰 지표 + 병원 쇼케이스
+import { useState, useEffect } from "react";
+
 type Props = {
   onStart: () => void;
 };
@@ -40,8 +42,41 @@ const FEATURE_CARDS = [
 ];
 
 export default function Intro({ onStart }: Props) {
+  const [hasDraft, setHasDraft] = useState(false);
+  useEffect(() => {
+    setHasDraft(!!localStorage.getItem("kmtp_case_draft"));
+  }, []);
+
   return (
     <div className="flex min-h-full flex-col">
+      {/* 이전 견적 이어가기 배너 */}
+      {hasDraft && (
+        <div className="bg-amber-50 border-b border-amber-200 px-5 py-3 flex items-center justify-between gap-3">
+          <p className="text-sm text-amber-800 font-semibold">
+            이전에 작성하신 견적이 있습니다 — 이어서 진행하시겠어요?
+          </p>
+          <div className="flex gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={onStart}
+              className="rounded-lg bg-amber-500 px-4 py-1.5 text-xs font-bold text-white hover:bg-amber-600 transition-colors"
+            >
+              이어가기
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.removeItem("kmtp_case_draft");
+                setHasDraft(false);
+              }}
+              className="rounded-lg border border-amber-300 px-4 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors"
+            >
+              새로 시작
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 다크 히어로 섹션 */}
       <section
         className="flex flex-col items-center justify-center px-5 py-20 text-center"

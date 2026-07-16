@@ -1,11 +1,12 @@
 "use client";
 
-// 1단계: 진료과 → 시술(가격없음) → 병원 → 가격확인+날짜/시간(개별)
+// 1단계: 진료과 → 시술(가격 표시) → 병원(정렬·상세) → 가격확인+날짜/시간(개별)
 import { useState } from "react";
 import { HOSPITALS, DEPARTMENTS, formatKRW, formatFX } from "@/lib/data";
 import { WORLD_COUNTRIES } from "@/lib/countries";
 import { PROCEDURES, proceduresByDept, type Procedure } from "@/lib/procedures";
 import type { TreatmentBooking, DateSlot } from "@/lib/booking";
+import HospitalDetailSheet from "@/components/HospitalDetailSheet";
 
 export type { TreatmentBooking };
 
@@ -15,9 +16,12 @@ type Props = {
   bookings: TreatmentBooking[];
   onUpdateBookings: (b: TreatmentBooking[]) => void;
   onNext: () => void;
+  companions: number;
+  onSelectCompanions: (n: number) => void;
 };
 
 type FormStep = "dept" | "proc" | "hospital" | "confirm";
+type SortMode = "trust" | "price";
 
 const TIMES: string[] = [];
 for (let h = 8; h <= 18; h++) {
@@ -37,11 +41,15 @@ function hospitalProcPrice(hospitalId: string, proc: Procedure): number | null {
   return t ? t.total : null;
 }
 
+function hospitalProcIncludes(hospitalId: string, proc: Procedure): string[] {
+  const h = HOSPITALS.find((h) => h.id === hospitalId);
+  const t = h?.treatments.find((t) => t.deptId === proc.deptId);
+  return t?.includes ?? [];
+}
+
 function priceDisplay(proc: Procedure, hospitalId: string | null) {
   if (proc.quote) return { label: "상담 견적", sub: "" };
-  // 병원 선택 전: 숨김
   if (!hospitalId) return null;
-  // 병원 선택 후: 해당 병원 패키지 가격
   const pkg = hospitalProcPrice(hospitalId, proc);
   if (pkg) {
     return {
@@ -49,11 +57,18 @@ function priceDisplay(proc: Procedure, hospitalId: string | null) {
       sub: `(시술 포함 패키지 · ${formatFX(pkg)})`,
     };
   }
-  // 패키지 가격 없으면 카탈로그 기준가
   if (proc.priceMaxKRW) {
     return { label: `${formatKRW(proc.priceKRW)} ~ ${formatKRW(proc.priceMaxKRW)}`, sub: formatFX(proc.priceMaxKRW) };
   }
   return { label: formatKRW(proc.priceKRW), sub: formatFX(proc.priceKRW) };
+}
+
+function procPriceLabel(p: Procedure): string {
+  if (p.quote) return "상담 견적 — 의료기록 검토 후 범위 제시";
+  if (p.priceMaxKRW) {
+    return `${formatKRW(p.priceKRW)}부터 · ${formatFX(p.priceKRW)} · 병원 확정 시 잠금가 제공`;
+  }
+  return `${formatKRW(p.priceKRW)} · ${formatFX(p.priceKRW)} · 병원 확정 시 잠금가 제공`;
 }
 
 export default function StepSelectHospital({
@@ -62,21 +77,37 @@ export default function StepSelectHospital({
   bookings,
   onUpdateBookings,
   onNext,
+  companions,
+  onSelectCompanions,
 }: Props) {
   const [formStep, setFormStep] = useState<FormStep>("dept");
   const [selDeptId, setSelDeptId] = useState<string | null>(null);
   const [selProc, setSelProc] = useState<Procedure | null>(null);
   const [selHospitalId, setSelHospitalId] = useState<string | null>(null);
-  // 날짜·시간 슬롯 5개
+  const [query, setQuery] = useState("");
+  const [sortMode, setSortMode] = useState<SortMode>("trust");
+  const [detailHospitalId, setDetailHospitalId] = useState<string | null>(null);
   const [slots, setSlots] = useState<DateSlot[]>([
     { ...EMPTY_SLOT }, { ...EMPTY_SLOT }, { ...EMPTY_SLOT },
     { ...EMPTY_SLOT }, { ...EMPTY_SLOT },
   ]);
 
   const procs = selDeptId ? proceduresByDept(selDeptId) : [];
+  const filteredProcs = procs.filter((p) => !query || p.name.includes(query));
+
   const availableHospitals = selProc
     ? HOSPITALS.filter((h) => h.treatments.some((t) => t.deptId === selProc.deptId))
     : [];
+
+  const sortedHospitals = [...availableHospitals].sort((a, b) => {
+    if (sortMode === "price") {
+      const pa = selProc ? (hospitalProcPrice(a.id, selProc) ?? Infinity) : Infinity;
+      const pb = selProc ? (hospitalProcPrice(b.id, selProc) ?? Infinity) : Infinity;
+      return pa - pb;
+    }
+    // trust = rating desc
+    return b.rating - a.rating;
+  });
 
   function filledSlots() { return slots.filter((s) => s.date && s.time); }
 
@@ -89,6 +120,7 @@ export default function StepSelectHospital({
     setSelDeptId(null);
     setSelProc(null);
     setSelHospitalId(null);
+    setQuery("");
     setSlots(Array.from({ length: 5 }, () => ({ ...EMPTY_SLOT })));
   }
 
@@ -134,6 +166,8 @@ export default function StepSelectHospital({
     return selHospitalId !== null;
   }
 
+  const detailHospital = detailHospitalId ? hospitalOf(detailHospitalId) ?? null : null;
+
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -142,6 +176,31 @@ export default function StepSelectHospital({
           국적 선택 후 진료과→시술→병원→가격확인·날짜 순으로 추가하세요.
         </p>
       </div>
+
+      {/* 동반 보호자 */}
+      <section className="flex flex-col gap-2">
+        <label className="text-sm font-semibold text-gray-700">동반 보호자</label>
+        <div className="flex gap-2">
+          {[
+            { label: "없음(0)", value: 0 },
+            { label: "1명", value: 1 },
+            { label: "2명+", value: 2 },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onSelectCompanions(opt.value)}
+              className={`rounded-xl border-2 px-4 py-2 text-sm font-semibold transition-colors ${
+                companions === opt.value
+                  ? "border-primary bg-primary text-white"
+                  : "border-gray-200 bg-white text-gray-600 hover:border-primary/40"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* 국적 */}
       <section className="flex items-center gap-3">
@@ -180,7 +239,7 @@ export default function StepSelectHospital({
                   const has = proceduresByDept(d.id).length > 0;
                   return (
                     <button key={d.id} type="button" disabled={!has}
-                      onClick={() => { setSelDeptId(d.id); setSelProc(null); setSelHospitalId(null); setFormStep("proc"); }}
+                      onClick={() => { setSelDeptId(d.id); setSelProc(null); setSelHospitalId(null); setQuery(""); setFormStep("proc"); }}
                       className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2.5 text-left transition-all ${
                         selDeptId === d.id ? "border-primary bg-primary-light font-bold text-primary-dark"
                         : has ? "border-gray-200 bg-white text-gray-700 hover:border-primary/40"
@@ -195,16 +254,22 @@ export default function StepSelectHospital({
             </div>
           )}
 
-          {/* ② 시술 (가격 숨김) */}
+          {/* ② 시술 (검색 + 가격 표시) */}
           {formStep === "proc" && selDeptId && (
             <div>
               <button type="button" onClick={() => setFormStep("dept")}
                 className="mb-3 flex items-center gap-1 text-xs text-primary hover:underline">
                 ← {deptOf(selDeptId)?.name}
               </button>
+              <input
+                placeholder="시술 검색..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className={`${inp} mb-3`}
+              />
               <p className="mb-3 text-xs font-semibold text-gray-500">시술을 선택하세요</p>
               <div className="flex flex-col gap-2">
-                {procs.map((p) => (
+                {filteredProcs.map((p) => (
                   <button key={p.id} type="button"
                     onClick={() => { setSelProc(p); setSelHospitalId(null); setFormStep("hospital"); }}
                     className={`flex items-center justify-between gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
@@ -213,52 +278,81 @@ export default function StepSelectHospital({
                     <div className="flex-1">
                       <p className="text-sm font-bold text-gray-800">{p.name}</p>
                       {p.note && <p className="text-[11px] text-gray-400 mt-0.5">{p.note}</p>}
+                      <p className={`text-[11px] mt-0.5 ${p.quote ? "text-amber-600 font-semibold" : "text-gray-500"}`}>
+                        {procPriceLabel(p)}
+                      </p>
                     </div>
-                    {/* 가격은 병원 선택 전 숨김 */}
-                    {p.quote && (
-                      <span className="text-xs text-amber-600 font-semibold shrink-0">상담 견적</span>
-                    )}
                   </button>
                 ))}
+                {filteredProcs.length === 0 && (
+                  <p className="py-4 text-center text-sm text-gray-400">검색 결과가 없습니다.</p>
+                )}
               </div>
             </div>
           )}
 
-          {/* ③ 병원 선택 (가격 숨김) */}
+          {/* ③ 병원 선택 (정렬 + 포함내역 뱃지 + 상세 버튼) */}
           {formStep === "hospital" && selProc && (
             <div>
               <button type="button" onClick={() => setFormStep("proc")}
                 className="mb-3 flex items-center gap-1 text-xs text-primary hover:underline">
                 ← {selProc.name}
               </button>
+              {/* 정렬 토글 */}
+              <div className="mb-3 flex items-center gap-2">
+                <span className="text-xs text-gray-500 font-semibold">정렬:</span>
+                {(["trust", "price"] as SortMode[]).map((mode) => (
+                  <button key={mode} type="button" onClick={() => setSortMode(mode)}
+                    className={`rounded-lg px-3 py-1 text-xs font-bold transition-colors ${
+                      sortMode === mode ? "bg-primary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}>
+                    {mode === "trust" ? "신뢰순" : "가격순"}
+                  </button>
+                ))}
+              </div>
               <p className="mb-3 text-xs font-semibold text-gray-500">
                 병원을 선택하면 해당 병원의 가격을 확인할 수 있습니다
               </p>
-              {availableHospitals.length === 0 ? (
+              {sortedHospitals.length === 0 ? (
                 <p className="py-4 text-center text-sm text-gray-400">제공 병원이 없습니다.</p>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {availableHospitals.map((h) => (
-                    <button key={h.id} type="button"
-                      onClick={() => { setSelHospitalId(h.id); setFormStep("confirm"); }}
-                      className={`flex items-start justify-between gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
-                        selHospitalId === h.id ? "border-primary bg-primary-light" : "border-gray-200 bg-white hover:border-primary/40"
-                      }`}>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-gray-800">{h.name}</p>
-                        <p className="text-xs text-gray-400">{h.area}</p>
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {h.badges.slice(0, 2).map((b) => (
-                            <span key={b} className="rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-semibold text-primary-dark">{b}</span>
-                          ))}
+                  {sortedHospitals.map((h) => {
+                    const includes = hospitalProcIncludes(h.id, selProc);
+                    return (
+                      <div key={h.id}
+                        className={`flex items-start justify-between gap-3 rounded-xl border-2 px-4 py-3 transition-all ${
+                          selHospitalId === h.id ? "border-primary bg-primary-light" : "border-gray-200 bg-white hover:border-primary/40"
+                        }`}>
+                        <button type="button" className="flex-1 min-w-0 text-left"
+                          onClick={() => { setSelHospitalId(h.id); setFormStep("confirm"); }}>
+                          <p className="text-sm font-bold text-gray-800">{h.name}</p>
+                          <p className="text-xs text-gray-400">{h.area}</p>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {h.badges.slice(0, 2).map((b) => (
+                              <span key={b} className="rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-semibold text-primary-dark">{b}</span>
+                            ))}
+                            {includes.length > 0 && (
+                              <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                포함내역 {includes.length}건
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <div className="text-right">
+                            <p className="text-xs text-amber-500 font-semibold">★ {h.rating}</p>
+                            <p className="text-[11px] text-gray-400">후기 {h.reviewCount.toLocaleString()}건</p>
+                          </div>
+                          <button type="button"
+                            onClick={() => setDetailHospitalId(h.id)}
+                            className="text-[11px] text-primary underline hover:text-primary-dark">
+                            상세보기
+                          </button>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-xs text-amber-500 font-semibold">★ {h.rating}</p>
-                        <p className="text-[11px] text-gray-400">후기 {h.reviewCount.toLocaleString()}건</p>
-                      </div>
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -383,6 +477,15 @@ export default function StepSelectHospital({
         <p className="text-center text-xs text-gray-400">
           {nationality === "" ? "국적을 먼저 선택해주세요" : "시술을 1개 이상 추가해주세요"}
         </p>
+      )}
+
+      {/* 병원 상세 시트 */}
+      {detailHospital && (
+        <HospitalDetailSheet
+          hospital={detailHospital}
+          procedure={selProc}
+          onClose={() => setDetailHospitalId(null)}
+        />
       )}
     </div>
   );

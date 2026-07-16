@@ -1,18 +1,21 @@
 "use client";
 
-// 환자(patient) 영역 — 5단계: 시술·일정 → 호텔·서비스 → 견적요청 → 에스크로 → 신뢰
-import { useState } from "react";
+// 환자(patient) 영역 — 6단계: 시술·일정 → 숙소 → 부가서비스 → 견적요청 → 에스크로 → 신뢰
+import { useState, useEffect } from "react";
 import type { Account } from "@/lib/auth";
 import TopBar from "@/components/TopBar";
 import PatientJourney from "@/components/PatientJourney";
 import KakaoChat from "@/components/KakaoChat";
 import Stepper from "@/components/Stepper";
 import StepSelectHospital from "@/components/StepSelectHospital";
+import StepStay from "@/components/StepStay";
 import StepHotelServices from "@/components/StepHotelServices";
 import StepQuoteRequest from "@/components/StepQuoteRequest";
 import StepEscrow from "@/components/StepEscrow";
 import StepTrust from "@/components/StepTrust";
-import { HOSPITALS, findHotel, findHotelRoom } from "@/lib/data";
+import { HOSPITALS, formatKRW } from "@/lib/data";
+import { findAccommodation, stayTotal } from "@/lib/accommodations";
+import { saveDraft, loadDraft, newCaseId } from "@/lib/draft";
 import type { TreatmentBooking, ServiceItem } from "@/lib/booking";
 
 type Props = {
@@ -22,6 +25,8 @@ type Props = {
 
 type Tab = "journey" | "booking" | "messages";
 
+const KMTP_WA = "821012345678";
+
 export default function PatientApp({ account, onLogout }: Props) {
   const [tab, setTab] = useState<Tab>("booking");
   const [step, setStep] = useState(1);
@@ -29,39 +34,89 @@ export default function PatientApp({ account, onLogout }: Props) {
   // Step 1: 국적 + 병원·시술·날짜
   const [nationality, setNationality] = useState("");
   const [bookings, setBookings] = useState<TreatmentBooking[]>([]);
+  const [companions, setCompanions] = useState(0);
 
-  // Step 2: 호텔 + 서비스
-  const [hotelId, setHotelId] = useState<string | null>(null);
-  const [hotelRoomId, setHotelRoomId] = useState("standard");
+  // Step 2: 숙소
+  const [accommodationId, setAccommodationId] = useState<string | null>(null);
+  const [accommodationRoomId, setAccommodationRoomId] = useState("std");
   const [nights, setNights] = useState(3);
+
+  // Step 3: 부가서비스
   const [services, setServices] = useState<ServiceItem[]>([]);
+
+  // Case ID
+  const [caseId, setCaseId] = useState<string>(() => newCaseId());
 
   // 흐름 제어
   const [flowPending, setFlowPending] = useState(false);
 
-  // 총 시술 금액 계산
-  const treatmentTotal = bookings.reduce((sum, b) => {
-    const hospital = HOSPITALS.find((h) => h.id === b.hospitalId);
-    const t = hospital?.treatments.find((tr) => tr.deptId === b.deptId);
-    return sum + (t?.total ?? 0);
-  }, 0);
+  // Draft restore on mount
+  useEffect(() => {
+    const d = loadDraft();
+    if (d) {
+      setCaseId(d.caseId);
+      setCompanions(d.companions);
+      setBookings(d.bookings);
+      setAccommodationId(d.accommodationId);
+      setAccommodationRoomId(d.accommodationRoomId);
+      setNights(d.nights);
+      setServices(d.services);
+      setNationality(d.nationality ?? "");
+      setStep(d.step > 1 ? 1 : d.step);
+    }
+  }, []);
 
-  // 호텔 합계 계산
-  const selectedHotel = findHotel(hotelId);
-  const selectedRoom = selectedHotel ? findHotelRoom(selectedHotel, hotelRoomId) : null;
-  const hotelTotal = selectedRoom ? selectedRoom.perNight * nights : 0;
+  // Draft save on state change
+  useEffect(() => {
+    if (tab === "booking" && (bookings.length > 0 || nationality)) {
+      saveDraft({
+        caseId,
+        nationality,
+        companions,
+        bookings,
+        accommodationId,
+        accommodationRoomId,
+        nights,
+        services,
+        step,
+      });
+    }
+  }, [caseId, nationality, companions, bookings, accommodationId, accommodationRoomId, nights, services, step, tab]);
+
+  // Grand total calculation
+  const treatmentTotal = bookings.reduce((s, b) => s + b.procedurePriceKRW, 0);
+  const accommodation = findAccommodation(accommodationId);
+  const selectedRoom = accommodation?.rooms.find((r) => r.id === accommodationRoomId) ?? null;
+  const stayTotalAmount = selectedRoom ? stayTotal(selectedRoom, nights) : 0;
+  const serviceTotal = services.reduce((s, sv) => s + (sv.priceKRW ?? 0), 0);
+  const grandTotal = treatmentTotal + stayTotalAmount + serviceTotal;
+
+  // WhatsApp link
+  const isKorean = nationality === "대한민국" || nationality === "한국";
+  const procSummary = bookings
+    .slice(0, 2)
+    .map((b) => `${b.procedureName}@${HOSPITALS.find((h) => h.id === b.hospitalId)?.name ?? ""}`)
+    .join(", ");
+  const waText = `[KMTP견적문의] 국적:${nationality || "미선택"} / 시술:${procSummary || "미선택"} / 합계:${formatKRW(grandTotal)}`;
+  const waLink = isKorean
+    ? "https://open.kakao.com/o/kmtp"
+    : `https://wa.me/${KMTP_WA}?text=${encodeURIComponent(waText)}`;
 
   function handleRestart() {
     setNationality("");
     setBookings([]);
-    setHotelId(null);
-    setHotelRoomId("standard");
+    setCompanions(0);
+    setAccommodationId(null);
+    setAccommodationRoomId("std");
     setNights(3);
     setServices([]);
     setStep(1);
     setTab("booking");
     setFlowPending(false);
+    setCaseId(newCaseId());
   }
+
+  const selectedProcedureIds = bookings.map((b) => b.procedureId);
 
   return (
     <div className="min-h-full">
@@ -118,7 +173,7 @@ export default function PatientApp({ account, onLogout }: Props) {
             }
             onGoTrust={() => {
               setTab("booking");
-              setStep(5);
+              setStep(6);
             }}
           />
         )}
@@ -143,61 +198,74 @@ export default function PatientApp({ account, onLogout }: Props) {
                 bookings={bookings}
                 onUpdateBookings={setBookings}
                 onNext={() => setStep(2)}
+                companions={companions}
+                onSelectCompanions={setCompanions}
               />
             )}
 
-            {/* 2단계: 호텔 + 부가서비스 */}
+            {/* 2단계: 숙소 */}
             {step === 2 && (
-              <StepHotelServices
-                account={account}
-                hotelId={hotelId}
-                hotelRoomId={hotelRoomId}
+              <StepStay
+                companions={companions}
+                selectedProcedureIds={selectedProcedureIds}
+                accommodationId={accommodationId}
+                accommodationRoomId={accommodationRoomId}
                 nights={nights}
-                services={services}
-                onSelectHotel={setHotelId}
-                onSelectRoom={setHotelRoomId}
+                onSelectAccommodation={setAccommodationId}
+                onSelectRoom={setAccommodationRoomId}
                 onChangeNights={setNights}
-                onUpdateServices={setServices}
                 onPrev={() => setStep(1)}
                 onNext={() => setStep(3)}
               />
             )}
 
-            {/* 3단계: 견적 요청 */}
+            {/* 3단계: 부가서비스 */}
             {step === 3 && (
-              <StepQuoteRequest
-                account={account}
-                nationality={nationality}
-                bookings={bookings}
-                hotelId={hotelId}
-                hotelRoomId={hotelRoomId}
-                nights={nights}
+              <StepHotelServices
+                companions={companions}
                 services={services}
+                onUpdateServices={setServices}
                 onPrev={() => setStep(2)}
                 onNext={() => setStep(4)}
               />
             )}
 
-            {/* 4단계: 에스크로 결제 */}
+            {/* 4단계: 견적 요청 */}
             {step === 4 && (
+              <StepQuoteRequest
+                account={account}
+                nationality={nationality}
+                bookings={bookings}
+                hotelId={null}
+                hotelRoomId=""
+                nights={nights}
+                services={services}
+                grandTotal={grandTotal}
+                companions={companions}
+                caseId={caseId}
+                accommodationId={accommodationId}
+                onPrev={() => setStep(3)}
+                onNext={() => setStep(5)}
+              />
+            )}
+
+            {/* 5단계: 에스크로 결제 */}
+            {step === 5 && (
               <StepEscrow
                 bookings={bookings}
-                totalAmount={treatmentTotal}
-                hotelId={hotelId}
-                hotelRoomId={hotelRoomId}
-                nights={nights}
-                hotelTotal={hotelTotal}
-                onPrev={() => setStep(3)}
+                grandTotal={grandTotal}
+                accommodationId={accommodationId}
+                onPrev={() => setStep(4)}
                 onNext={() => {
-                  setStep(5);
+                  setStep(6);
                   setTab("journey");
                   setFlowPending(true);
                 }}
               />
             )}
 
-            {/* 5단계: 신뢰·후기 */}
-            {step === 5 && (
+            {/* 6단계: 신뢰·후기 */}
+            {step === 6 && (
               <StepTrust
                 onPrev={() => setTab("journey")}
                 onRestart={handleRestart}
@@ -207,6 +275,19 @@ export default function PatientApp({ account, onLogout }: Props) {
           </>
         )}
       </main>
+
+      {/* WhatsApp floating button */}
+      {tab === "booking" && (
+        <a
+          href={waLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-green-500 px-4 py-3 text-sm font-bold text-white shadow-lg hover:bg-green-600 transition-colors"
+        >
+          <span>💬</span>
+          <span className="hidden sm:inline">견적 문의</span>
+        </a>
+      )}
     </div>
   );
 }

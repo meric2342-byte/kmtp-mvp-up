@@ -23,6 +23,10 @@ type Props = {
   hotelRoomId: string;
   nights: number;
   services: ServiceItem[];
+  grandTotal: number;
+  companions: number;
+  caseId: string;
+  accommodationId?: string | null;
   onPrev: () => void;
   onNext: () => void;
 };
@@ -57,6 +61,10 @@ export default function StepQuoteRequest({
   hotelRoomId,
   nights,
   services,
+  grandTotal,
+  companions,
+  caseId,
+  accommodationId,
   onPrev,
   onNext,
 }: Props) {
@@ -70,11 +78,10 @@ export default function StepQuoteRequest({
     : null;
 
   const treatmentTotal = bookings.reduce(
-    (sum, b) => sum + getQuoteTotal(b.hospitalId, b.deptId),
+    (sum, b) => sum + b.procedurePriceKRW,
     0,
   );
   const hotelTotal = selectedRoom ? selectedRoom.perNight * nights : 0;
-  const grandTotal = treatmentTotal + hotelTotal;
 
   async function handleSubmit() {
     setSubmitting(true);
@@ -108,8 +115,12 @@ export default function StepQuoteRequest({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          case_id: caseId,
           patient_name: patientName,
           nationality,
+          companions,
+          accommodation_id: accommodationId ?? null,
+          grand_total: grandTotal,
           items,
         }),
       });

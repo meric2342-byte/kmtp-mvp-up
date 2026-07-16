@@ -25,6 +25,11 @@ export type ServiceItem = {
   time: string;
   language: string;
   hours: string;
+  vehicleGrade?: string;
+  flightNumber?: string;
+  interpLang?: string;
+  interpDuration?: string;
+  priceKRW?: number;
 };
 
 // Top-level booking session state (not per-procedure)
