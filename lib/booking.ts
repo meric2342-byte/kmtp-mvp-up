@@ -26,3 +26,15 @@ export type ServiceItem = {
   language: string;
   hours: string;
 };
+
+// Top-level booking session state (not per-procedure)
+export type BookingSession = {
+  caseId: string;
+  companions: number;  // 0 = 환자 단독, 1 = 보호자 1명, 2 = 보호자 2명+
+};
+
+export type AccommodationBooking = {
+  accommodationId: string;
+  roomId: string;
+  nights: number;
+};

@@ -118,23 +118,27 @@ export type Department = {
 };
 
 export const DEPARTMENTS: Department[] = [
-  // Full Lock — 총액 고정
-  { id: "derma", name: "피부과", icon: "✨", lockType: "full", desc: "미용·피부·레이저 시술", recoveryNights: 7 },
-  { id: "dental", name: "치과", icon: "🦷", lockType: "full", desc: "임플란트·교정·미백", recoveryNights: 5 },
-  { id: "eye", name: "안과", icon: "👁️", lockType: "full", desc: "라식·라섹·백내장", recoveryNights: 3 },
+  // checkup first
   { id: "checkup", name: "종합검진", icon: "🩺", lockType: "full", desc: "프리미엄 건강검진 패키지", recoveryNights: 2 },
-  { id: "plastic", name: "성형외과", icon: "💎", lockType: "full", desc: "안면·코·가슴 성형", recoveryNights: 10 },
-  { id: "hair", name: "모발이식", icon: "💆", lockType: "full", desc: "FUE·FUT 모발이식", recoveryNights: 5 },
-  { id: "weightloss", name: "비만클리닉", icon: "⚡", lockType: "full", desc: "체중감량·지방흡입", recoveryNights: 7 },
-  { id: "derm_adv", name: "피부과 (고급)", icon: "🌟", lockType: "full", desc: "리프팅·필러·보톡스 프리미엄", recoveryNights: 5 },
 
   // Range Lock — 범위 보장 + 변동 룰
   { id: "thyroid", name: "갑상선", icon: "🦋", lockType: "range", desc: "갑상선 결절·암 수술", recoveryNights: 14 },
-  { id: "spine", name: "척추", icon: "🦴", lockType: "range", desc: "디스크·협착증 수술", recoveryNights: 21 },
-  { id: "joint", name: "관절·정형외과", icon: "🦵", lockType: "range", desc: "인공관절·연골 재건", recoveryNights: 21 },
   { id: "cancer", name: "암 치료", icon: "🎗️", lockType: "range", desc: "암 수술·항암·방사선", recoveryNights: 30 },
   { id: "cardio", name: "심장내과", icon: "❤️", lockType: "range", desc: "심장 스텐트·판막 수술", recoveryNights: 21 },
+  { id: "spine", name: "척추", icon: "🦴", lockType: "range", desc: "디스크·협착증 수술", recoveryNights: 21 },
+  { id: "joint", name: "관절·정형외과", icon: "🦵", lockType: "range", desc: "인공관절·연골 재건", recoveryNights: 21 },
   { id: "neuro", name: "신경외과", icon: "🧠", lockType: "range", desc: "뇌·신경 수술·종양", recoveryNights: 21 },
+
+  // Full Lock — 총액 고정
+  { id: "derma", name: "피부과", icon: "✨", lockType: "full", desc: "미용·피부·레이저 시술", recoveryNights: 7 },
+  { id: "plastic", name: "성형외과", icon: "💎", lockType: "full", desc: "안면·코·가슴 성형", recoveryNights: 10 },
+  { id: "dental", name: "치과", icon: "🦷", lockType: "full", desc: "임플란트·교정·미백", recoveryNights: 5 },
+  { id: "eye", name: "안과", icon: "👁️", lockType: "full", desc: "라식·라섹·백내장", recoveryNights: 3 },
+  { id: "hair", name: "모발이식", icon: "💆", lockType: "full", desc: "FUE·FUT 모발이식", recoveryNights: 5 },
+  { id: "derm_adv", name: "피부과 (고급)", icon: "🌟", lockType: "full", desc: "리프팅·필러·보톡스 프리미엄", recoveryNights: 5 },
+  { id: "weightloss", name: "비만클리닉", icon: "⚡", lockType: "full", desc: "체중감량·지방흡입", recoveryNights: 7 },
+
+  // Range Lock (continued)
   { id: "fertility", name: "난임·불임", icon: "🌸", lockType: "range", desc: "시험관아기·난임 치료", recoveryNights: 7 },
   { id: "rehab", name: "재활의학", icon: "🏃", lockType: "range", desc: "수술 후 재활·물리치료", recoveryNights: 14 },
 
@@ -211,6 +215,13 @@ export type HospitalOption = {
   reviewCount: number;
   badges: string[];
   treatments: HospitalTreatmentQuote[];
+  // Extended fields (optional, mock/placeholder for now)
+  address?: string;
+  lat?: number;
+  lng?: number;
+  intro?: string;
+  photos?: string[];
+  doctors?: { name: string; specialty: string }[];
 };
 
 export const HOSPITALS: HospitalOption[] = [
@@ -1067,6 +1078,26 @@ export const RECOMMENDED_HOSPITAL: Hospital = {
   badges: ["JCI 인증", "외국인 전담 코디", "에스크로 제휴"],
 };
 
+export type CaseManager = {
+  id: string;
+  name: string;
+  photo: string;   // placeholder
+  languages: string[];
+  waPhone: string; // WhatsApp number (international format, no +)
+  slaNote: string;
+};
+
+export const CASE_MANAGERS: CaseManager[] = [
+  {
+    id: "CM001",
+    name: "김지수 코디네이터",
+    photo: "/placeholder/cm-jisu.jpg",
+    languages: ["한국어", "영어", "중국어"],
+    waPhone: "821012345678",
+    slaNote: "평일 09:00–18:00 · 긴급 시 24시간 이내 응답",
+  },
+];
+
 // mock 시간표: 날짜별 시간 슬롯 (available=false는 마감)
 export type DaySlots = {
   date: string; // 표시용 날짜 라벨
@@ -1185,6 +1216,8 @@ export type Review = {
   date: string;
   text: string;
   verified: boolean; // 에스크로 완료 검증 여부
+  hospitalId?: string;
+  procedureId?: string;
 };
 
 export const REVIEWS: Review[] = [
@@ -1227,6 +1260,54 @@ export const REVIEWS: Review[] = [
     date: "2026-04-27",
     text: "임플란트 총액 고정이라 비교하기 쉬웠어요. 사후 원격 점검까지 좋았습니다.",
     verified: true,
+  },
+  {
+    id: "r5",
+    name: "D***",
+    country: "🇷🇺 러시아",
+    dept: "갑상선",
+    rating: 5,
+    date: "2026-06-15",
+    text: "갑상선 수술 후 회복까지 전담 코디가 케어해줬습니다. 범위 견적 그대로 청구되어 신뢰할 수 있었어요.",
+    verified: true,
+    hospitalId: "H002new",
+    procedureId: "thyroid-total",
+  },
+  {
+    id: "r6",
+    name: "K***",
+    country: "🇲🇳 몽골",
+    dept: "종합검진",
+    rating: 5,
+    date: "2026-06-28",
+    text: "프리미엄 검진 결과를 영문+몽골어로 받았고, 이상 소견에 대한 원격 설명까지 제공받았습니다.",
+    verified: true,
+    hospitalId: "H007new",
+    procedureId: "checkup-premium",
+  },
+  {
+    id: "r7",
+    name: "A***",
+    country: "🕌 중동",
+    dept: "관절·정형외과",
+    rating: 5,
+    date: "2026-07-01",
+    text: "인공관절 수술 후 위브리빙에서 3주 회복했습니다. 취사 가능하고 코디와 매일 소통할 수 있어 안심이었습니다.",
+    verified: true,
+    hospitalId: "H003new",
+    procedureId: "joint-knee-tkr",
+  },
+  {
+    id: "r8",
+    name: "N***",
+    country: "🇻🇳 베트남",
+    dept: "피부과",
+    rating: 4,
+    date: "2026-07-05",
+    text: "써마지 시술 가격이 예약 때와 동일하게 청구되었습니다. 통역 코디 덕분에 불편함 없이 진행했습니다.",
+    verified: true,
+    hospitalId: "H001",
+    procedureId: "derma-thermage",
   },
 ];
 
