@@ -16,7 +16,7 @@ import StepTrust from "@/components/StepTrust";
 import MyQuotes from "@/components/MyQuotes";
 import { HOSPITALS, formatKRW } from "@/lib/data";
 import { findAccommodation, stayTotal } from "@/lib/accommodations";
-import { saveDraft, loadDraft, newCaseId } from "@/lib/draft";
+import { saveDraft, loadDraft, clearDraft, newCaseId } from "@/lib/draft";
 import type { TreatmentBooking, ServiceItem } from "@/lib/booking";
 
 type Props = {
@@ -51,9 +51,11 @@ export default function PatientApp({ account, onLogout }: Props) {
   // 흐름 제어
   const [flowPending, setFlowPending] = useState(false);
 
-  // Draft restore on mount
+  // Draft restore — 계정별로 저장된 draft만 복원한다.
+  // account.id가 바뀌면(다른 아이디 로그인) 그 계정의 draft로 갈아끼우고,
+  // 없으면 빈 상태로 초기화해 이전 계정의 시술이 섞이지 않게 한다.
   useEffect(() => {
-    const d = loadDraft();
+    const d = loadDraft(account.id);
     if (d) {
       setCaseId(d.caseId);
       setCompanions(d.companions);
@@ -64,8 +66,19 @@ export default function PatientApp({ account, onLogout }: Props) {
       setServices(d.services);
       setNationality(d.nationality ?? "");
       setStep(d.step > 1 ? 1 : d.step);
+    } else {
+      // 이 계정에 저장된 선택이 없으면 깨끗한 상태로 시작
+      setCaseId(newCaseId());
+      setCompanions(0);
+      setBookings([]);
+      setAccommodationId(null);
+      setAccommodationRoomId("std");
+      setNights(3);
+      setServices([]);
+      setNationality("");
+      setStep(1);
     }
-  }, []);
+  }, [account.id]);
 
   // Draft save on state change
   useEffect(() => {
@@ -80,9 +93,9 @@ export default function PatientApp({ account, onLogout }: Props) {
         nights,
         services,
         step,
-      });
+      }, account.id);
     }
-  }, [caseId, nationality, companions, bookings, accommodationId, accommodationRoomId, nights, services, step, tab]);
+  }, [account.id, caseId, nationality, companions, bookings, accommodationId, accommodationRoomId, nights, services, step, tab]);
 
   // Grand total calculation
   const treatmentTotal = bookings.reduce((s, b) => s + b.procedurePriceKRW, 0);
@@ -104,6 +117,7 @@ export default function PatientApp({ account, onLogout }: Props) {
     : `https://wa.me/${KMTP_WA}?text=${encodeURIComponent(waText)}`;
 
   function handleRestart() {
+    clearDraft(account.id);   // 이 계정의 저장된 선택도 함께 비운다
     setNationality("");
     setBookings([]);
     setCompanions(0);
