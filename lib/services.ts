@@ -54,15 +54,27 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
     ],
   },
 
-  // 2) 배차·택시 — 시내/병원 이동. 실비 결제 후 후정산 + 건당 수수료
+  // 2) 택시 — 시내/병원 이동. 실비 결제 후 후정산 + 건당 수수료
   {
-    id: "ride",
-    name: "배차·택시 (이동)",
+    id: "taxi",
+    name: "택시",
     settlement: "에스크로 내 결제 후 추후 정산 (개별정산 아님)",
     fields: ["날짜", "시간", "출발지", "도착지", "인원"],
     commissionKRW: 5000, // KMTP 건당 수수료
     options: [
-      { id: "taxi", name: "택시/배차", priceKRW: null, unit: "실비(미터) + 건당 수수료 5,000원", desc: "요금은 실비, KMTP 건당 수수료 5,000원. 에스크로 결제 후 정산.", photo: "/placeholder/ride-taxi.jpg" },
+      { id: "taxi", name: "택시", priceKRW: null, unit: "실비(미터) + 건당 수수료 5,000원", desc: "요금은 실비, KMTP 건당 수수료 5,000원. 에스크로 결제 후 정산.", photo: "/placeholder/ride-taxi.jpg" },
+    ],
+  },
+
+  // 3) 배차 (전용차량 대절) — 시간제 고정가. 픽업 장소·시간 지정
+  {
+    id: "charter",
+    name: "배차 (전용차량 대절)",
+    settlement: "에스크로 내 결제 · 추후 정산",
+    fields: ["날짜", "픽업 시간", "픽업 장소", "인원"],
+    options: [
+      { id: "charter-4h", name: "4시간 대절", priceKRW: 150000, unit: "4시간/대", desc: "전용차량+기사 · 병원 동행·대기 포함", photo: "/placeholder/charter-4h.jpg" },
+      { id: "charter-8h", name: "8시간 대절", priceKRW: 200000, unit: "8시간/대", desc: "전용차량+기사 · 종일 일정", photo: "/placeholder/charter-8h.jpg" },
     ],
   },
 

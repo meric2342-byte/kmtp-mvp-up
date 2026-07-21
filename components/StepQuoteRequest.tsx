@@ -13,7 +13,10 @@ import {
   findHotelRoom,
 } from "@/lib/data";
 import { loadProfile, fullName } from "@/lib/profile";
+import { findServiceCategory } from "@/lib/services";
 import type { TreatmentBooking, ServiceItem } from "@/lib/booking";
+
+const CHARTER_OPTIONS = findServiceCategory("charter")?.options ?? [];
 
 type Props = {
   account: Account;
@@ -46,8 +49,18 @@ function hospitalName(id: string) {
 
 function serviceLabel(s: ServiceItem) {
   if (s.type === "통역") {
-    return `통역 · ${s.language || "-"} · ${s.hours || "-"}시간`;
+    const place = s.interpPlace ? ` · ${s.interpPlace}` : "";
+    const timeRange = s.startTime && s.endTime ? ` · ${s.startTime}~${s.endTime}` : "";
+    return `통역 · ${s.interpLang || s.language || "-"}${timeRange}${place}`;
   }
+  if (s.type === "배차") {
+    // 전용차량 대절 — 대절옵션 · 픽업장소 · 픽업시간
+    const opt = CHARTER_OPTIONS.find((o) => o.id === s.charterOption);
+    const when = [s.date, s.time].filter(Boolean).join(" ");
+    const pickup = s.from ? `픽업: ${s.from}` : "";
+    return `배차 · ${opt?.name ?? "대절"} · ${[pickup, when].filter(Boolean).join(" · ") || "-"}`;
+  }
+  // 공항픽업 / 택시 — 출발→도착 + 일시
   const route = [s.from, s.to].filter(Boolean).join(" → ");
   const when = [s.date, s.time].filter(Boolean).join(" ");
   return `${s.type} · ${[route, when].filter(Boolean).join(" · ") || "-"}`;
@@ -105,8 +118,9 @@ export default function StepQuoteRequest({
           ]
         : []),
       ...services.map((s) => ({
-        service_type: s.type,
+        service_type: s.type,   // 공항픽업 / 택시 / 배차 / 통역
         details: serviceLabel(s),
+        price_krw: s.priceKRW ?? 0,
       })),
     ];
 

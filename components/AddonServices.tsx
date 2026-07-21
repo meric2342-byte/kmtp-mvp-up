@@ -7,10 +7,16 @@ import type { Account } from "@/lib/auth";
 import { B2B_API_BASE } from "@/lib/api";
 import { loadProfile, fullName } from "@/lib/profile";
 import { RECOVERY_ROOMS, formatKRW } from "@/lib/data";
+import { findServiceCategory } from "@/lib/services";
+import AddressInput, { useGoogleMaps } from "@/components/AddressInput";
 
 type Props = { account: Account };
 
-type ReqItem = { service_type: string; details: string };
+type ReqItem = { service_type: string; details: string; price_krw?: number };
+
+// 배차(전용차량 대절) 옵션 — 4시간 15만 / 8시간 20만
+const CHARTER_OPTIONS = findServiceCategory("charter")?.options ?? [];
+const TAXI_COMMISSION = findServiceCategory("taxi")?.commissionKRW ?? 5000;
 
 export default function AddonServices({ account }: Props) {
   // 호텔
@@ -19,12 +25,14 @@ export default function AddonServices({ account }: Props) {
   const [nights, setNights] = useState("3");
 
   // 택시·배차
+  const mapsReady = useGoogleMaps();
   const [rideOn, setRideOn] = useState(false);
   const [rideType, setRideType] = useState("택시");
   const [rideFrom, setRideFrom] = useState("");
   const [rideTo, setRideTo] = useState("");
   const [rideDate, setRideDate] = useState("");
   const [rideTime, setRideTime] = useState("");
+  const [charterOption, setCharterOption] = useState(CHARTER_OPTIONS[0]?.id ?? "charter-4h");
 
   // 통역
   const [interpOn, setInterpOn] = useState(false);
@@ -48,11 +56,24 @@ export default function AddonServices({ account }: Props) {
     }
     if (rideOn) {
       const when = [rideDate, rideTime].filter(Boolean).join(" ");
-      const route = [rideFrom, rideTo].filter(Boolean).join(" → ");
-      items.push({
-        service_type: rideType, // 택시 / 배차
-        details: [route, when].filter(Boolean).join(" · ") || `${rideType} 요청`,
-      });
+      if (rideType === "배차") {
+        // 전용차량 대절 — 대절옵션 · 픽업장소 · 픽업시간, 고정가
+        const opt = CHARTER_OPTIONS.find((o) => o.id === charterOption);
+        const pickup = rideFrom ? `픽업: ${rideFrom}` : "";
+        items.push({
+          service_type: "배차",
+          details: `${opt?.name ?? "대절"} · ${[pickup, when].filter(Boolean).join(" · ") || "요청"}`,
+          price_krw: opt?.priceKRW ?? 0,
+        });
+      } else {
+        // 택시 — 출발→도착 + 일시, 실비+수수료
+        const route = [rideFrom, rideTo].filter(Boolean).join(" → ");
+        items.push({
+          service_type: "택시",
+          details: [route, when].filter(Boolean).join(" · ") || "택시 요청",
+          price_krw: TAXI_COMMISSION,
+        });
+      }
     }
     if (interpOn) {
       items.push({
@@ -151,7 +172,7 @@ export default function AddonServices({ account }: Props) {
 
       {/* 택시·배차 */}
       <ServiceCard on={rideOn} onToggle={() => setRideOn((v) => !v)} icon="🚕" title="택시 · 배차"
-        summary="공항픽업·이동 차량 (날짜·시간 지정)">
+        summary="택시(실비+수수료) · 배차 대절 4시간 15만·8시간 20만">
         <div className="flex flex-col gap-3">
           <div className="flex gap-2">
             {["택시", "배차"].map((t) => (
@@ -161,12 +182,42 @@ export default function AddonServices({ account }: Props) {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <input value={rideFrom} onChange={(e) => setRideFrom(e.target.value)} placeholder="출발지 (예: 인천공항)" className={inp} />
-            <input value={rideTo} onChange={(e) => setRideTo(e.target.value)} placeholder="도착지 (예: 서울대병원)" className={inp} />
-            <input type="date" value={rideDate} onChange={(e) => setRideDate(e.target.value)} className={inp} />
-            <input type="time" value={rideTime} onChange={(e) => setRideTime(e.target.value)} className={inp} />
-          </div>
+
+          {rideType === "택시" ? (
+            <>
+              <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2">
+                <span className="text-[11px] text-blue-600">실비(미터) + KMTP 수수료 {formatKRW(TAXI_COMMISSION)} · 에스크로 결제 후 추후 정산</span>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <AddressInput ready={mapsReady} value={rideFrom} onChange={setRideFrom} placeholder="출발지 (예: 인천공항)" className={inp} />
+                <AddressInput ready={mapsReady} value={rideTo} onChange={setRideTo} placeholder="도착지 (예: 서울대병원)" className={inp} />
+                <input type="date" value={rideDate} onChange={(e) => setRideDate(e.target.value)} className={inp} />
+                <input type="time" value={rideTime} onChange={(e) => setRideTime(e.target.value)} className={inp} />
+              </div>
+            </>
+          ) : (
+            <>
+              {/* 대절 옵션 4h/8h */}
+              <div className="flex flex-col gap-2">
+                {CHARTER_OPTIONS.map((opt) => (
+                  <button key={opt.id} type="button" onClick={() => setCharterOption(opt.id)}
+                    className={`flex items-start gap-3 rounded-xl border-2 p-3 text-left transition-all ${charterOption === opt.id ? "border-primary bg-primary-light/40" : "border-gray-200 bg-white hover:border-primary/40"}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-800">{opt.name}</p>
+                      <p className="text-xs text-gray-500">{opt.desc}</p>
+                    </div>
+                    <span className="shrink-0 text-sm font-black text-primary">{opt.priceKRW ? formatKRW(opt.priceKRW) : "견적"}</span>
+                  </button>
+                ))}
+              </div>
+              {/* 픽업 장소(구글 자동완성) + 픽업 시간 */}
+              <AddressInput ready={mapsReady} value={rideFrom} onChange={setRideFrom} placeholder="픽업 장소 (예: 인천국제공항 제1터미널)" className={inp} />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="date" value={rideDate} onChange={(e) => setRideDate(e.target.value)} className={inp} />
+                <input type="time" value={rideTime} onChange={(e) => setRideTime(e.target.value)} className={inp} />
+              </div>
+            </>
+          )}
         </div>
       </ServiceCard>
 

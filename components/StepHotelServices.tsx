@@ -1,99 +1,20 @@
 "use client";
 
-// 3단계: 부가서비스 (공항픽업 / 배차·택시 / 통역)
-import { useState, useEffect, useRef } from "react";
+// 3단계: 부가서비스 (공항픽업 / 택시 / 배차 / 통역)
+import { useState, useEffect } from "react";
 import { formatKRW } from "@/lib/data";
-import { COORDINATOR, SERVICE_CATEGORIES } from "@/lib/services";
+import { COORDINATOR, SERVICE_CATEGORIES, findServiceCategory } from "@/lib/services";
 import type { ServiceItem } from "@/lib/booking";
-
-// ── Google Maps 자동완성 ──
-type WindowWithGoogle = Window & {
-  google?: {
-    maps?: {
-      places?: {
-        Autocomplete: new (
-          el: HTMLInputElement,
-          opts?: Record<string, unknown>,
-        ) => {
-          addListener: (
-            ev: string,
-            cb: () => void,
-          ) => { remove?: () => void };
-          getPlace: () => {
-            formatted_address?: string;
-            name?: string;
-          };
-        };
-      };
-    };
-  };
-};
-
-function useGoogleMaps(): boolean {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!key) return;
-    const w = window as WindowWithGoogle;
-    if (w.google?.maps?.places) { setReady(true); return; }
-    const existing = document.getElementById("gmaps-script");
-    if (existing) { existing.addEventListener("load", () => setReady(true)); return; }
-    const s = document.createElement("script");
-    s.id = "gmaps-script";
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&language=ko`;
-    s.async = true;
-    s.onload = () => setReady(true);
-    document.head.appendChild(s);
-  }, []);
-  return ready;
-}
-
-function AddressInput({
-  value,
-  onChange,
-  placeholder,
-  ready,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  ready: boolean;
-}) {
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (!ready || !ref.current) return;
-    const places = (window as WindowWithGoogle).google?.maps?.places;
-    if (!places) return;
-    const ac = new places.Autocomplete(ref.current, {
-      fields: ["formatted_address", "name"],
-      componentRestrictions: { country: "kr" },
-    });
-    const listener = ac.addListener("place_changed", () => {
-      const place = ac.getPlace();
-      const addr = place?.formatted_address ?? "";
-      const name = place?.name ?? "";
-      const label =
-        name && addr && !addr.includes(name) ? `${name} (${addr})` : addr || name;
-      if (label) onChange(label);
-    });
-    return () => { listener?.remove?.(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
-  return (
-    <input
-      ref={ref}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className={inp}
-    />
-  );
-}
+import AddressInput, { useGoogleMaps } from "@/components/AddressInput";
 
 export type { ServiceItem };
 
 // 공항픽업 옵션 (lib/services.ts의 airport-pickup 카테고리)
 const AIRPORT_PICKUP_OPTIONS = SERVICE_CATEGORIES.find((c) => c.id === "airport-pickup")?.options ?? [];
+// 배차(전용차량 대절) 옵션 — 4시간 15만 / 8시간 20만
+const CHARTER_OPTIONS = findServiceCategory("charter")?.options ?? [];
+// 택시 건당 수수료
+const TAXI_COMMISSION = findServiceCategory("taxi")?.commissionKRW ?? 5000;
 
 const INTERP_LANGS = ["영어", "러시아어", "몽골어", "중국어", "아랍어"] as const;
 
@@ -105,9 +26,9 @@ type Props = {
   onNext: () => void;
 };
 
-type ServiceType = "공항픽업" | "배차" | "통역";
+type ServiceType = "공항픽업" | "택시" | "배차" | "통역";
 
-const SERVICE_TYPES: ServiceType[] = ["공항픽업", "배차", "통역"];
+const SERVICE_TYPES: ServiceType[] = ["공항픽업", "택시", "배차", "통역"];
 
 const EMPTY_FORM = {
   type: "공항픽업" as ServiceType,
@@ -124,6 +45,7 @@ const EMPTY_FORM = {
   startTime: "",
   endTime: "",
   interpPlace: "",
+  charterOption: CHARTER_OPTIONS[0]?.id ?? "charter-4h",
 };
 
 export default function StepHotelServices({
@@ -151,8 +73,13 @@ export default function StepHotelServices({
       const opt = AIRPORT_PICKUP_OPTIONS.find((o) => o.id === form.vehicleGrade);
       return opt?.priceKRW ?? 0;
     }
-    // 배차 — 수수료만
-    return 5000;
+    if (form.type === "배차") {
+      // 전용차량 대절 — 4시간 15만 / 8시간 20만 고정가
+      const opt = CHARTER_OPTIONS.find((o) => o.id === form.charterOption);
+      return opt?.priceKRW ?? 0;
+    }
+    // 택시 — 실비(미터) + 건당 수수료만 선결제
+    return TAXI_COMMISSION;
   }
 
   function addService() {
@@ -174,6 +101,7 @@ export default function StepHotelServices({
       startTime: form.startTime,
       endTime: form.endTime,
       interpPlace: form.interpPlace,
+      charterOption: form.charterOption,
       priceKRW,
     }]);
     setForm({ ...EMPTY_FORM });
@@ -196,14 +124,22 @@ export default function StepHotelServices({
       const flight = s.flightNumber ? ` · 항공편: ${s.flightNumber}` : "";
       return `공항픽업 · ${opt?.name ?? ""} · ${when || "-"}${flight}`;
     }
-    // 배차
+    if (s.type === "배차") {
+      // 전용차량 대절 — 대절 시간·픽업 장소·픽업 시간
+      const opt = CHARTER_OPTIONS.find((o) => o.id === s.charterOption);
+      const when = [s.date, s.time].filter(Boolean).join(" ");
+      const pickup = s.from ? `픽업: ${s.from}` : "";
+      return `배차 · ${opt?.name ?? "대절"} · ${[pickup, when].filter(Boolean).join(" · ") || "-"}`;
+    }
+    // 택시 — 출발→도착 + 일시, 실비+수수료
     const route = [s.from, s.to].filter(Boolean).join(" → ");
     const when = [s.date, s.time].filter(Boolean).join(" ");
-    return `배차 · ${[route, when].filter(Boolean).join(" · ") || "-"} · 실비+수수료`;
+    return `택시 · ${[route, when].filter(Boolean).join(" · ") || "-"} · 실비+수수료`;
   }
 
   const servicesTotal = services.reduce((s, sv) => s + (sv.priceKRW ?? 0), 0);
   const selectedPickupOpt = AIRPORT_PICKUP_OPTIONS.find((o) => o.id === form.vehicleGrade);
+  const selectedCharterOpt = CHARTER_OPTIONS.find((o) => o.id === form.charterOption);
 
   return (
     <div className="flex flex-col gap-8">
@@ -398,12 +334,12 @@ export default function StepHotelServices({
               </>
             )}
 
-            {/* 배차·택시 */}
-            {form.type === "배차" && (
+            {/* 택시 — 실비(미터) + 건당 수수료. 출발→도착 */}
+            {form.type === "택시" && (
               <>
                 <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 flex items-center gap-2">
                   <span className="text-xs font-bold text-blue-700">에스크로 결제</span>
-                  <span className="text-[11px] text-blue-600">실비(미터) + KMTP 수수료 5,000원 · 에스크로 내 결제 후 추후 정산</span>
+                  <span className="text-[11px] text-blue-600">실비(미터) + KMTP 수수료 {formatKRW(TAXI_COMMISSION)} · 에스크로 내 결제 후 추후 정산</span>
                 </div>
 
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -435,10 +371,85 @@ export default function StepHotelServices({
 
                 <div className="flex items-center justify-between rounded-xl bg-primary-light px-4 py-2">
                   <span className="text-xs text-primary-dark font-semibold">KMTP 수수료</span>
-                  <span className="text-sm font-black text-primary">{formatKRW(5000)}</span>
+                  <span className="text-sm font-black text-primary">{formatKRW(TAXI_COMMISSION)}</span>
                 </div>
                 <p className="text-[11px] text-gray-400">
-                  배차 확정 후 기사 이름·차량번호·실시간 위치를 여정 화면에서 확인할 수 있습니다.
+                  택시 배차 확정 후 기사 이름·차량번호·실시간 위치를 여정 화면에서 확인할 수 있습니다.
+                </p>
+              </>
+            )}
+
+            {/* 배차 (전용차량 대절) — 4h/8h 옵션 + 픽업 장소·시간 */}
+            {form.type === "배차" && (
+              <>
+                {/* 대절 옵션 선택 */}
+                <div>
+                  <p className="mb-2 text-xs font-semibold text-gray-600">대절 옵션</p>
+                  <div className="flex flex-col gap-2">
+                    {CHARTER_OPTIONS.map((opt) => (
+                      <button key={opt.id} type="button"
+                        onClick={() => setForm((f) => ({ ...f, charterOption: opt.id }))}
+                        className={`flex items-start gap-3 rounded-xl border-2 p-3 text-left transition-all ${
+                          form.charterOption === opt.id
+                            ? "border-primary bg-primary-light/40"
+                            : "border-gray-200 bg-white hover:border-primary/40"
+                        }`}>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-800">{opt.name}</p>
+                          <p className="text-xs text-gray-500">{opt.desc}</p>
+                          <p className="text-[11px] text-gray-400">{opt.unit}</p>
+                        </div>
+                        <span className="shrink-0 text-sm font-black text-primary">
+                          {opt.priceKRW ? formatKRW(opt.priceKRW) : "견적"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 픽업 장소(구글 자동완성) */}
+                <div>
+                  <p className="mb-1 text-xs font-semibold text-gray-600">픽업 장소</p>
+                  <AddressInput
+                    ready={mapsReady}
+                    value={form.from}
+                    onChange={(v) => setForm((f) => ({ ...f, from: v }))}
+                    placeholder="픽업 장소 (예: 인천국제공항 제1터미널)"
+                  />
+                </div>
+
+                {/* 날짜·픽업 시간 */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <p className="mb-1 text-xs font-semibold text-gray-600">날짜</p>
+                    <input
+                      type="date"
+                      value={form.date}
+                      onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                      className={inp}
+                    />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs font-semibold text-gray-600">픽업 시간</p>
+                    <input
+                      type="time"
+                      value={form.time}
+                      onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
+                      className={inp}
+                    />
+                  </div>
+                </div>
+
+                {selectedCharterOpt && (
+                  <div className="flex items-center justify-between rounded-xl bg-primary-light px-4 py-2">
+                    <span className="text-xs text-primary-dark font-semibold">배차 요금 ({selectedCharterOpt.name})</span>
+                    <span className="text-sm font-black text-primary">
+                      {selectedCharterOpt.priceKRW ? formatKRW(selectedCharterOpt.priceKRW) : "견적"}
+                    </span>
+                  </div>
+                )}
+                <p className="text-[11px] text-gray-400">
+                  전용차량+기사 대절. 확정 후 기사 이름·차량번호·실시간 위치를 여정 화면에서 확인할 수 있습니다.
                 </p>
               </>
             )}
