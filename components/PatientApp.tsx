@@ -13,6 +13,7 @@ import StepHotelServices from "@/components/StepHotelServices";
 import StepQuoteRequest from "@/components/StepQuoteRequest";
 import StepEscrow from "@/components/StepEscrow";
 import StepTrust from "@/components/StepTrust";
+import MyQuotes from "@/components/MyQuotes";
 import { HOSPITALS, formatKRW } from "@/lib/data";
 import { findAccommodation, stayTotal } from "@/lib/accommodations";
 import { saveDraft, loadDraft, newCaseId } from "@/lib/draft";
@@ -23,7 +24,7 @@ type Props = {
   onLogout: () => void;
 };
 
-type Tab = "journey" | "booking" | "messages";
+type Tab = "journey" | "booking" | "quotes" | "messages";
 
 const KMTP_WA = "821012345678";
 
@@ -141,6 +142,7 @@ export default function PatientApp({ account, onLogout }: Props) {
             [
               { key: "journey", label: "내 여정" },
               { key: "booking", label: "견적·예약" },
+              { key: "quotes", label: "내 견적" },
               { key: "messages", label: "💬 메시지" },
             ] as { key: Tab; label: string }[]
           ).map((t) => (
@@ -174,6 +176,17 @@ export default function PatientApp({ account, onLogout }: Props) {
             onGoTrust={() => {
               setTab("booking");
               setStep(6);
+            }}
+          />
+        )}
+
+        {/* 내 견적 탭 — case_id로 b2b 확정 결과 폴링 */}
+        {tab === "quotes" && (
+          <MyQuotes
+            caseId={caseId}
+            onGoEscrow={() => {
+              setTab("booking");
+              setStep(5);
             }}
           />
         )}
