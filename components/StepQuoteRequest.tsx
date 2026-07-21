@@ -60,7 +60,14 @@ function serviceLabel(s: ServiceItem) {
     const pickup = s.from ? `픽업: ${s.from}` : "";
     return `배차 · ${opt?.name ?? "대절"} · ${[pickup, when].filter(Boolean).join(" · ") || "-"}`;
   }
-  // 공항픽업 / 택시 — 출발→도착 + 일시
+  if (s.type === "공항픽업") {
+    // 공항픽업 — 차량등급 · 날짜·시간 · 항공편 (details에 반드시 날짜·시간 포함)
+    const when = [s.date, s.time].filter(Boolean).join(" ");
+    const flight = s.flightNumber ? `항공편 ${s.flightNumber}` : "";
+    const grade = s.vehicleGrade ? `[${s.vehicleGrade}]` : "";
+    return `공항픽업 · ${[grade, when, flight].filter(Boolean).join(" · ") || "-"}`;
+  }
+  // 택시 — 출발→도착 + 일시
   const route = [s.from, s.to].filter(Boolean).join(" → ");
   const when = [s.date, s.time].filter(Boolean).join(" ");
   return `${s.type} · ${[route, when].filter(Boolean).join(" · ") || "-"}`;

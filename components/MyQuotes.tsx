@@ -16,9 +16,18 @@ type CaseQuote = {
   procedure_name: string | null;
   price_krw: number | null;
   quote_amount: number | null;
+  quote_sent_at: string | null;
   status: string;
   source: string | null;
   created_at: string;
+};
+
+// by-case 응답: { case_id, items, total_quote, quote_sent }
+type CaseResponse = {
+  case_id: string;
+  items: CaseQuote[];
+  total_quote: number;
+  quote_sent: boolean;
 };
 
 type Props = {
@@ -32,6 +41,7 @@ const TYPE_ICON: Record<string, string> = {
 
 export default function MyQuotes({ caseId, onGoEscrow }: Props) {
   const [quotes, setQuotes] = useState<CaseQuote[]>([]);
+  const [quoteSent, setQuoteSent] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<string>("");
@@ -41,8 +51,9 @@ export default function MyQuotes({ caseId, onGoEscrow }: Props) {
     try {
       const res = await fetch(`${B2B_API_BASE}/service-requests/by-case/${encodeURIComponent(caseId)}`);
       if (!res.ok) throw new Error(`조회 실패 (${res.status})`);
-      const data = (await res.json()) as CaseQuote[];
-      setQuotes(data);
+      const data = (await res.json()) as CaseResponse;
+      setQuotes(data.items ?? []);
+      setQuoteSent(Boolean(data.quote_sent));
       setError(null);
       setLastSync(new Date().toLocaleTimeString("ko-KR"));
     } catch {
@@ -59,7 +70,8 @@ export default function MyQuotes({ caseId, onGoEscrow }: Props) {
     return () => clearInterval(t);
   }, [load]);
 
-  const confirmed = quotes.filter((q) => q.status === "견적확정");
+  const isConfirmedStatus = (s: string) => s === "견적확정" || s === "견적발송";
+  const confirmed = quotes.filter((q) => isConfirmedStatus(q.status));
   const hasConfirmed = confirmed.length > 0;
   // 확정 합계: 확정금액이 있으면 그 값, 없으면 요청가(price_krw)
   const confirmedTotal = confirmed.reduce(
@@ -95,6 +107,13 @@ export default function MyQuotes({ caseId, onGoEscrow }: Props) {
         </div>
       )}
 
+      {quoteSent && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <p className="text-sm font-bold text-emerald-800">📩 견적서가 발송되었습니다</p>
+          <p className="mt-0.5 text-xs text-emerald-700">운영팀이 최종 견적을 확정해 보냈습니다. 아래 확정 금액으로 결제를 진행하실 수 있습니다.</p>
+        </div>
+      )}
+
       {loading ? (
         <p className="py-12 text-center text-sm text-gray-400">불러오는 중…</p>
       ) : error ? (
@@ -108,7 +127,7 @@ export default function MyQuotes({ caseId, onGoEscrow }: Props) {
         <>
           <div className="flex flex-col gap-2">
             {quotes.map((q) => {
-              const isConfirmed = q.status === "견적확정";
+              const isConfirmed = isConfirmedStatus(q.status);
               return (
                 <div key={q.id}
                   className={`flex items-start gap-3 rounded-xl border-2 px-4 py-3 ${isConfirmed ? "border-emerald-200 bg-emerald-50/50" : "border-gray-200 bg-white"}`}>
@@ -180,7 +199,8 @@ export default function MyQuotes({ caseId, onGoEscrow }: Props) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const confirmed = status === "견적확정";
+  const sent = status === "견적발송";
+  const confirmed = status === "견적확정" || sent;
   return (
     <span
       className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
@@ -189,7 +209,7 @@ function StatusBadge({ status }: { status: string }) {
           : "bg-amber-100 text-amber-700"
       }`}
     >
-      {confirmed ? "✓ 견적확정" : "요청"}
+      {sent ? "📩 견적발송" : confirmed ? "✓ 견적확정" : "요청"}
     </span>
   );
 }
