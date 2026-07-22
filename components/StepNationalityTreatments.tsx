@@ -2,7 +2,7 @@
 
 // 1단계: 국적 선택 + 시술 다중선택
 import { DEPARTMENTS } from "@/lib/data";
-import { NATIONALITIES } from "@/lib/profile";
+import NationalityPicker from "@/components/NationalityPicker";
 
 type Props = {
   nationality: string;
@@ -35,16 +35,10 @@ export default function StepNationalityTreatments({
       {/* 국적 */}
       <section>
         <h3 className="mb-3 text-sm font-semibold text-gray-700">1. 국적</h3>
-        <select
-          value={nationality}
-          onChange={(e) => onSelectNationality(e.target.value)}
-          className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
-        >
-          <option value="">국적 선택</option>
-          {NATIONALITIES.map((n) => (
-            <option key={n} value={n}>{n}</option>
-          ))}
-        </select>
+        <NationalityPicker
+          nationality={nationality}
+          onSelectNationality={onSelectNationality}
+        />
       </section>
 
       {/* 시술 다중선택 */}

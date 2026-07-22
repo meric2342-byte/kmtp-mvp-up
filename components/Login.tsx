@@ -7,12 +7,12 @@ import { useState } from "react";
 import { authenticate, type Account } from "@/lib/auth";
 import { api } from "@/lib/api";
 import {
-  NATIONALITIES,
   saveProfile,
   fullName,
   EMPTY_PROFILE,
   type PatientProfile,
 } from "@/lib/profile";
+import NationalityPicker from "@/components/NationalityPicker";
 
 type Props = {
   onLogin: (account: Account, password: string) => void;
@@ -231,23 +231,15 @@ export default function Login({ onLogin }: Props) {
             </div>
           </div>
 
-          {/* 국적 드롭다운 */}
+          {/* 국적 — 공식 리스트(영문 검색·국기·행정구역 2단계) */}
           <div>
             <label className="mb-1 block text-xs font-semibold text-gray-600">
               국적
             </label>
-            <select
-              value={profile.nationality}
-              onChange={(e) => setP("nationality", e.target.value)}
-              className={inputCls}
-            >
-              <option value="">국적 선택 (선택)</option>
-              {NATIONALITIES.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
+            <NationalityPicker
+              nationality={profile.nationality}
+              onSelectNationality={(ko) => setP("nationality", ko)}
+            />
           </div>
 
           {/* 여권 정보 */}

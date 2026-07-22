@@ -23,6 +23,7 @@ export default function AddonServices({ account }: Props) {
   const [hotelOn, setHotelOn] = useState(false);
   const [roomId, setRoomId] = useState("standard");
   const [nights, setNights] = useState("3");
+  const [hotelCheckin, setHotelCheckin] = useState(""); // 체크인 날짜(§1 payload)
 
   // 택시·배차
   const mapsReady = useGoogleMaps();
@@ -38,6 +39,8 @@ export default function AddonServices({ account }: Props) {
   const [interpOn, setInterpOn] = useState(false);
   const [lang, setLang] = useState("");
   const [interpHours, setInterpHours] = useState("");
+  const [interpDate, setInterpDate] = useState(""); // 통역 날짜(§1 payload)
+  const [interpTime, setInterpTime] = useState(""); // 통역 시작 시간
 
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
@@ -49,9 +52,14 @@ export default function AddonServices({ account }: Props) {
     const items: ReqItem[] = [];
     if (hotelOn) {
       const n = Number(nights) || 1;
+      const checkin = hotelCheckin ? `체크인 ${hotelCheckin}` : "";
       items.push({
         service_type: "호텔",
-        details: `${room.name} · ${n}박 (${formatKRW(room.perNight)}/박 · 합계 ${formatKRW(room.perNight * n)})`,
+        details: [
+          `${room.name} · ${n}박`,
+          checkin,
+          `${formatKRW(room.perNight)}/박 · 합계 ${formatKRW(room.perNight * n)}`,
+        ].filter(Boolean).join(" · "),
       });
     }
     if (rideOn) {
@@ -76,9 +84,10 @@ export default function AddonServices({ account }: Props) {
       }
     }
     if (interpOn) {
+      const when = [interpDate, interpTime].filter(Boolean).join(" ");
       items.push({
         service_type: "통역",
-        details: [lang && `${lang}`, interpHours && `${interpHours}시간`]
+        details: [lang && `${lang}`, when && `${when}`, interpHours && `${interpHours}시간`]
           .filter(Boolean)
           .join(" · ") || "통역 요청",
       });
@@ -168,6 +177,11 @@ export default function AddonServices({ account }: Props) {
             합계 {formatKRW(room.perNight * (Number(nights) || 0))}
           </span>
         </label>
+        <label className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+          체크인 날짜
+          <input type="date" value={hotelCheckin} onChange={(e) => setHotelCheckin(e.target.value)}
+            className="rounded-lg border-2 border-gray-200 px-3 py-1.5 outline-none focus:border-primary" />
+        </label>
       </ServiceCard>
 
       {/* 택시·배차 */}
@@ -227,6 +241,8 @@ export default function AddonServices({ account }: Props) {
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <input value={lang} onChange={(e) => setLang(e.target.value)} placeholder="언어 (예: 베트남어)" className={inp} />
           <input type="number" min={1} step={0.5} value={interpHours} onChange={(e) => setInterpHours(e.target.value)} placeholder="예상 시간 (시간)" className={inp} />
+          <input type="date" value={interpDate} onChange={(e) => setInterpDate(e.target.value)} className={inp} />
+          <input type="time" value={interpTime} onChange={(e) => setInterpTime(e.target.value)} className={inp} />
         </div>
       </ServiceCard>
 
