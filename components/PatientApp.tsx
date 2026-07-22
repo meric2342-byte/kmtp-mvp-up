@@ -17,6 +17,7 @@ import MyQuotes from "@/components/MyQuotes";
 import { HOSPITALS, formatKRW } from "@/lib/data";
 import { findAccommodation, stayTotal } from "@/lib/accommodations";
 import { saveDraft, loadDraft, clearDraft, newCaseId } from "@/lib/draft";
+import { loadLastNationality, saveLastNationality } from "@/lib/profile";
 import type { TreatmentBooking, ServiceItem } from "@/lib/booking";
 
 type Props = {
@@ -64,10 +65,12 @@ export default function PatientApp({ account, onLogout }: Props) {
       setAccommodationRoomId(d.accommodationRoomId);
       setNights(d.nights);
       setServices(d.services);
-      setNationality(d.nationality ?? "");
+      // 국적은 draft에 있으면 그 값, 없으면 기기의 직전 국적을 이어서 사용
+      setNationality(d.nationality || loadLastNationality());
       setStep(d.step > 1 ? 1 : d.step);
     } else {
       // 이 계정에 저장된 선택이 없으면 깨끗한 상태로 시작
+      // (단, 국적만은 새 아이디를 만들어도 직전 선택값을 이어서 보여준다)
       setCaseId(newCaseId());
       setCompanions(0);
       setBookings([]);
@@ -75,10 +78,15 @@ export default function PatientApp({ account, onLogout }: Props) {
       setAccommodationRoomId("std");
       setNights(3);
       setServices([]);
-      setNationality("");
+      setNationality(loadLastNationality());
       setStep(1);
     }
   }, [account.id]);
+
+  // 국적이 바뀌면 기기 단위 '직전 국적'으로 저장 → 새 아이디에서도 이어서 표시
+  useEffect(() => {
+    if (nationality) saveLastNationality(nationality);
+  }, [nationality]);
 
   // Draft save on state change
   useEffect(() => {

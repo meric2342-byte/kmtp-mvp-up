@@ -75,3 +75,18 @@ export function clearProfile(accountId?: string): void {
   if (typeof window === "undefined") return;
   try { localStorage.removeItem(keyFor(accountId)); } catch {}
 }
+
+// 국적은 '기기 단위'로 직전 선택값을 유지한다.
+// (이름·시술 등 개인 식별 정보는 계정별로 분리하되, 국적은 새 아이디를 만들어도
+//  시술·병원·일정 화면에 이어서 보이도록 별도 전역 키에 보관 — 재입력 편의)
+const LAST_NATIONALITY_KEY = "kmtp_last_nationality";
+
+export function saveLastNationality(nationality: string): void {
+  if (typeof window === "undefined" || !nationality) return;
+  try { localStorage.setItem(LAST_NATIONALITY_KEY, nationality); } catch {}
+}
+
+export function loadLastNationality(): string {
+  if (typeof window === "undefined") return "";
+  try { return localStorage.getItem(LAST_NATIONALITY_KEY) ?? ""; } catch { return ""; }
+}
