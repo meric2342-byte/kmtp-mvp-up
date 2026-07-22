@@ -105,7 +105,7 @@ export default function StepQuoteRequest({
 
   async function handleSubmit() {
     setSubmitting(true);
-    const profile = loadProfile();
+    const profile = loadProfile(account.id);
     const patientName = fullName(profile) || account.name || "환자";
 
     const items: { service_type: string; details: string; procedure_id?: string; procedure_name?: string; price_krw?: number }[] = [

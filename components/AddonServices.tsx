@@ -103,7 +103,7 @@ export default function AddonServices({ account }: Props) {
     }
     setSending(true);
     setError(null);
-    const profile = loadProfile();
+    const profile = loadProfile(account.id);
     const patientName = fullName(profile) || account.name || "환자";
     try {
       const res = await fetch(`${B2B_API_BASE}/service-requests`, {

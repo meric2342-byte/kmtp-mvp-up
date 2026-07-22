@@ -80,8 +80,8 @@ export default function Login({ onLogin }: Props) {
         nationality: profile.nationality || undefined,
         department: profile.department || undefined,
       });
-      // 여권 등 상세 프로필은 로컬에 보관 → 검진·부가서비스 요청 시 b2b로 함께 전달
-      saveProfile(profile);
+      // 여권 등 상세 프로필은 로컬에 보관(계정별) → 검진·부가서비스 요청 시 b2b로 함께 전달
+      saveProfile(profile, acc.id);
       onLogin(
         {
           id: acc.id,
