@@ -2,7 +2,7 @@
 
 // 외국인 건강검진 여정 MVP 프로토타입 (mock)
 // 4단계: 사전문진 → 병원·프로그램 선택 → 예약 요청 → 병원 컨펌
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { B2B_API_BASE } from "@/lib/api";
 
 const CONDITIONS = ["고혈압", "당뇨", "심장질환", "신장질환", "갑상선", "없음"];
@@ -159,6 +159,20 @@ const STEPS = [
   { n: 4, label: "병원 컨펌" },
 ];
 
+// 검진 다단계 승인: 접수 → 본사 승인 → 검진기관 승인 → 확정
+const CHECKUP_STAGES = [
+  { key: "요청", label: "접수" },
+  { key: "본사승인", label: "본사 승인" },
+  { key: "병원승인", label: "검진기관 승인" },
+  { key: "확정", label: "확정" },
+];
+function checkupStageIndex(s: string): number {
+  if (s === "확정") return 3;
+  if (s === "병원승인") return 2;
+  if (s === "본사승인") return 1;
+  return 0; // 요청·견적확정·견적발송
+}
+
 export default function CheckupPage() {
   const [step, setStep] = useState(1);
 
@@ -178,6 +192,9 @@ export default function CheckupPage() {
   const chosenDates = dates.filter(Boolean);
   const [status, setStatus] = useState<"none" | "pending" | "confirmed">("none");
   const [confirmedDate, setConfirmedDate] = useState<string | null>(null);
+  // 실제 백엔드 승인 단계(요청/본사승인/병원승인/확정) 폴링 반영
+  const [requestId, setRequestId] = useState<number | null>(null);
+  const [remoteStatus, setRemoteStatus] = useState<string>("요청");
 
   // 에이전시 귀속 코드(링크 ?ref=). 없으면 우리 직접 방문으로 처리됨.
   const [ref, setRef] = useState<string | null>(null);
@@ -208,7 +225,7 @@ export default function CheckupPage() {
   async function requestBooking() {
     // 검진 요청은 항상 b2b 운영 백엔드(에이전시 관리)로 전송한다.
     try {
-      await fetch(`${B2B_API_BASE}/checkup-requests`, {
+      const res = await fetch(`${B2B_API_BASE}/checkup-requests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -222,17 +239,43 @@ export default function CheckupPage() {
           ref: ref || undefined,
         }),
       });
+      if (res.ok) {
+        const created = await res.json();
+        if (created?.id != null) setRequestId(created.id);
+      }
     } catch {
       // 데모: 백엔드 미연동 시 무시하고 진행
     }
+    setRemoteStatus("요청");
     setStatus("pending");
     setStep(4);
   }
 
-  function demoConfirm() {
-    setConfirmedDate(chosenDates[0] ?? "");
-    setStatus("confirmed");
-  }
+  // 승인 진행 상태 폴링 — 본사/검진기관 승인 결과를 환자 화면에 반영(5초 간격)
+  const pollStatus = useCallback(async () => {
+    const who = (name || "이름 미입력").trim();
+    if (!who) return;
+    try {
+      const res = await fetch(`${B2B_API_BASE}/checkup-requests/by-patient/${encodeURIComponent(who)}`);
+      if (!res.ok) return;
+      const list: { id: number; status: string; confirmed_date: string | null }[] = await res.json();
+      if (!Array.isArray(list) || list.length === 0) return;
+      const mine = (requestId != null ? list.find((x) => x.id === requestId) : null) ?? list[0];
+      if (!mine) return;
+      setRemoteStatus(mine.status);
+      if (mine.confirmed_date) setConfirmedDate(mine.confirmed_date);
+      if (mine.status === "확정") setStatus("confirmed");
+    } catch {
+      // 네트워크 오류는 조용히 무시(다음 폴링에서 재시도)
+    }
+  }, [name, requestId]);
+
+  useEffect(() => {
+    if (step !== 4 || status === "confirmed") return;
+    pollStatus();
+    const t = setInterval(pollStatus, 5000);
+    return () => clearInterval(t);
+  }, [step, status, pollStatus]);
 
   return (
     <div className="min-h-full bg-white">
@@ -484,16 +527,37 @@ export default function CheckupPage() {
 
             {status === "pending" && (
               <div className="flex flex-col gap-4">
+                {/* 승인 진행 단계 (실시간 반영) */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {CHECKUP_STAGES.map((s, i) => {
+                    const done = i <= checkupStageIndex(remoteStatus);
+                    return (
+                      <div key={s.key} className="flex items-center gap-1.5">
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${done ? "bg-primary text-white" : "bg-gray-100 text-gray-400"}`}>
+                          {s.label}
+                        </span>
+                        {i < CHECKUP_STAGES.length - 1 && (
+                          <span className={i < checkupStageIndex(remoteStatus) ? "text-primary" : "text-gray-300"}>›</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
                 <div className="flex items-center gap-3 rounded-xl bg-amber-50 px-4 py-4">
                   <span className="text-2xl">⏳</span>
                   <div>
-                    <p className="text-sm font-bold text-amber-800">병원 컨펌 대기 중</p>
-                    <p className="text-xs text-amber-700">희망 날짜: {chosenDates.join(", ")}</p>
+                    <p className="text-sm font-bold text-amber-800">
+                      {remoteStatus === "본사승인" ? "본사 승인 완료 · 검진기관 승인 대기 중"
+                        : remoteStatus === "병원승인" ? "검진기관 승인 완료 · 본사 최종 승인 대기 중"
+                        : "접수됨 · 본사 승인 대기 중"}
+                    </p>
+                    <p className="text-xs text-amber-700">희망 날짜: {chosenDates.join(", ") || "미정"}</p>
                   </div>
                 </div>
-                <button type="button" onClick={demoConfirm} className="rounded-xl border-2 border-primary px-6 py-3 text-sm font-bold text-primary hover:bg-primary-light">
-                  ▶ 데모: 병원이 컨펌했다고 가정
+                <button type="button" onClick={pollStatus} className="rounded-xl border-2 border-primary px-6 py-3 text-sm font-bold text-primary hover:bg-primary-light">
+                  ↻ 진행 상태 새로고침
                 </button>
+                <p className="text-center text-[11px] text-gray-400">승인이 진행되면 자동으로 갱신됩니다.</p>
               </div>
             )}
 
@@ -513,7 +577,7 @@ export default function CheckupPage() {
 
             <div className="flex justify-between">
               <button type="button" onClick={() => setStep(3)} className={prevCls}>← 이전</button>
-              <button type="button" onClick={() => { setStep(1); setStatus("none"); setConfirmedDate(null); }} className="text-sm font-semibold text-primary underline-offset-2 hover:underline">
+              <button type="button" onClick={() => { setStep(1); setStatus("none"); setConfirmedDate(null); setRequestId(null); setRemoteStatus("요청"); }} className="text-sm font-semibold text-primary underline-offset-2 hover:underline">
                 처음부터 다시
               </button>
             </div>
