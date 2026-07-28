@@ -202,6 +202,17 @@ export default function CheckupPage() {
   const [token, setToken] = useState<string | null>(null);
   const [centerName, setCenterName] = useState<string | null>(null);
   const journey = !!token;
+  // 화면 모드: loading(파라미터 확인 중) → register(토큰 없음: 최소 등록) | journey(토큰: 문진)
+  const [mode, setMode] = useState<"loading" | "register" | "journey">("loading");
+  const [linkError, setLinkError] = useState<string | null>(null);
+  // 최소 등록 폼(토큰 없이 접속 시)
+  const [regNationality, setRegNationality] = useState("");
+  const [regContact, setRegContact] = useState("");
+  const [regHospitalId, setRegHospitalId] = useState("");
+  const [centers, setCenters] = useState<{ id: number; name: string }[]>([]);
+  const [registered, setRegistered] = useState(false);
+  const [regSubmitting, setRegSubmitting] = useState(false);
+  const [regError, setRegError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -209,10 +220,23 @@ export default function CheckupPage() {
     setRef(params.get("ref"));
     const tk = params.get("token");
     setToken(tk);
-    if (!tk) return;
+    if (!tk) {
+      // 토큰 없음 → 최소 등록 모드. 검진센터 후보 로드(선택용).
+      setMode("register");
+      fetch(`${B2B_API_BASE}/checkup-centers`)
+        .then((r) => (r.ok ? r.json() : []))
+        .then((list) => setCenters(Array.isArray(list) ? list : []))
+        .catch(() => setCenters([]));
+      return;
+    }
+    setMode("journey");
     // 여정 링크: 기존 등록 정보 로드 → 검진센터 자동선택 + 이름 프리필
     fetch(`${B2B_API_BASE}/checkup-requests/by-token/${encodeURIComponent(tk)}`)
-      .then((r) => (r.ok ? r.json() : null))
+      .then(async (r) => {
+        if (r.status === 410) { setLinkError("만료된 링크입니다. 담당자에게 재발송을 요청해 주세요."); return null; }
+        if (r.status === 404) { setLinkError("유효하지 않은 링크입니다."); return null; }
+        return r.ok ? r.json() : null;
+      })
       .then((d) => {
         if (!d) return;
         if (d.patient_name) setName(d.patient_name);
@@ -233,6 +257,31 @@ export default function CheckupPage() {
         /* 데모: 백엔드 미연동 시 무시 */
       });
   }, []);
+
+  async function registerMinimal() {
+    if (!name.trim()) { setRegError("환자 이름을 입력하세요."); return; }
+    setRegSubmitting(true);
+    setRegError(null);
+    try {
+      const res = await fetch(`${B2B_API_BASE}/checkup-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_name: name.trim(),
+          nationality: regNationality || undefined,
+          contact: regContact || undefined,
+          hospital_id: regHospitalId ? Number(regHospitalId) : undefined,
+          ref: ref || undefined,
+        }),
+      });
+      if (!res.ok) throw new Error("등록에 실패했습니다.");
+      setRegistered(true);
+    } catch (e) {
+      setRegError(e instanceof Error ? e.message : "등록에 실패했습니다.");
+    } finally {
+      setRegSubmitting(false);
+    }
+  }
 
   const program = PROGRAMS.find((p) => p.id === programId) ?? null;
 
@@ -340,22 +389,88 @@ export default function CheckupPage() {
     return () => clearInterval(t);
   }, [step, status, pollStatus]);
 
+  // 공통 헤더
+  const header = (
+    <header className="border-b border-gray-100 bg-white">
+      <div className="mx-auto flex max-w-2xl items-center gap-2 px-5 py-4">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-black text-white">검</span>
+        <span className="text-lg font-black tracking-tight text-primary-dark">건강검진 여정</span>
+        <span className="hidden text-xs text-gray-400 sm:inline">사전문진부터 예약 확정까지</span>
+      </div>
+    </header>
+  );
+
+  // 파라미터 확인 중
+  if (mode === "loading") {
+    return <div className="min-h-full bg-white">{header}<main className="mx-auto max-w-2xl px-5 py-16 text-center text-gray-400">불러오는 중...</main></div>;
+  }
+
+  // 토큰 없이 접속 → 최소 등록(문진은 담당자가 링크로 요청)
+  if (mode === "register") {
+    return (
+      <div className="min-h-full bg-white">
+        {header}
+        <main className="mx-auto max-w-2xl px-5 py-8">
+          {registered ? (
+            <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-primary bg-primary-light px-6 py-10 text-center">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-3xl text-white">✓</span>
+              <p className="text-lg font-bold text-primary-dark">검진 등록 완료</p>
+              <p className="text-sm text-primary-dark/80">
+                담당자가 확인 후 <b>사전 문진 링크</b>를 보내드립니다.<br />
+                링크를 받으시면 검진센터가 자동 선택된 상태로 문진을 작성하실 수 있습니다.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-6">
+              <div>
+                <h2 className="text-xl font-bold text-primary-dark sm:text-2xl">건강검진 등록</h2>
+                <p className="mt-1 text-sm text-gray-500">기본 정보만 남겨 주세요. 담당자가 확인 후 <b>사전 문진 링크</b>를 보내드립니다.</p>
+              </div>
+              <Field label="환자 이름 (여권 영문) *">
+                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: NGUYEN VAN AN" className={inputCls} />
+              </Field>
+              <Field label="국적">
+                <input value={regNationality} onChange={(e) => setRegNationality(e.target.value)} placeholder="예: 베트남" className={inputCls} />
+              </Field>
+              <Field label="연락처 (이메일/전화 — 링크 안내용)">
+                <input value={regContact} onChange={(e) => setRegContact(e.target.value)} placeholder="예: pt@example.com" className={inputCls} />
+              </Field>
+              <Field label="희망 검진센터 (선택)">
+                <select value={regHospitalId} onChange={(e) => setRegHospitalId(e.target.value)} className={inputCls}>
+                  <option value="">미지정 (담당자가 배정)</option>
+                  {centers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </Field>
+              <div className="flex items-center justify-end gap-3">
+                {regError && <span className="text-sm text-red-600">{regError}</span>}
+                <button type="button" onClick={registerMinimal} disabled={regSubmitting} className={`${nextCls} ${regSubmitting ? "cursor-not-allowed !bg-gray-300" : ""}`}>
+                  {regSubmitting ? "등록 중..." : "검진 등록"}
+                </button>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
+
+  // 여정 링크가 만료/무효
+  if (linkError) {
+    return (
+      <div className="min-h-full bg-white">
+        {header}
+        <main className="mx-auto max-w-2xl px-5 py-16 text-center">
+          <p className="mb-2 text-lg font-bold text-gray-700">⚠️ {linkError}</p>
+          <p className="text-sm text-gray-500">담당자에게 링크 재발송을 요청해 주세요.</p>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-full bg-white">
       {/* 헤더 */}
-      <header className="border-b border-gray-100 bg-white">
-        <div className="mx-auto flex max-w-2xl items-center gap-2 px-5 py-4">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-black text-white">
-            검
-          </span>
-          <span className="text-lg font-black tracking-tight text-primary-dark">
-            건강검진 여정
-          </span>
-          <span className="hidden text-xs text-gray-400 sm:inline">
-            사전문진부터 예약 확정까지
-          </span>
-        </div>
-      </header>
+      {header}
 
       <main className="mx-auto max-w-2xl px-5 py-8">
         {/* 스텝퍼 */}
@@ -638,10 +753,17 @@ export default function CheckupPage() {
                     <p className="text-xs text-amber-700">희망 날짜: {chosenDates.join(", ") || "미정"}</p>
                   </div>
                 </div>
-                <button type="button" onClick={pollStatus} className="rounded-xl border-2 border-primary px-6 py-3 text-sm font-bold text-primary hover:bg-primary-light">
-                  ↻ 진행 상태 새로고침
-                </button>
-                <p className="text-center text-[11px] text-gray-400">승인이 진행되면 자동으로 갱신됩니다.</p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button type="button" onClick={pollStatus} className="flex-1 rounded-xl border-2 border-primary px-6 py-3 text-sm font-bold text-primary hover:bg-primary-light">
+                    ↻ 진행 상태 새로고침
+                  </button>
+                  {journey && remoteStatus === "문진완료" && (
+                    <button type="button" onClick={() => { setStatus("none"); setStep(1); }} className="flex-1 rounded-xl border-2 border-gray-200 px-6 py-3 text-sm font-bold text-gray-600 hover:border-primary/40">
+                      ✎ 문진 다시 작성
+                    </button>
+                  )}
+                </div>
+                <p className="text-center text-[11px] text-gray-400">승인이 진행되면 자동으로 갱신됩니다.{journey && remoteStatus === "문진완료" ? " 본사 승인 전까지 문진을 수정할 수 있습니다." : ""}</p>
               </div>
             )}
 
