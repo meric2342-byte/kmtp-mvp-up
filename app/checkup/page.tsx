@@ -198,10 +198,40 @@ export default function CheckupPage() {
 
   // 에이전시 귀속 코드(링크 ?ref=). 없으면 우리 직접 방문으로 처리됨.
   const [ref, setRef] = useState<string | null>(null);
+  // 여정 링크(?token=): 본사가 발송한 개인 링크. 등록된 검진센터가 자동선택되고, 문진만 작성한다.
+  const [token, setToken] = useState<string | null>(null);
+  const [centerName, setCenterName] = useState<string | null>(null);
+  const journey = !!token;
+
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setRef(new URLSearchParams(window.location.search).get("ref"));
-    }
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    setRef(params.get("ref"));
+    const tk = params.get("token");
+    setToken(tk);
+    if (!tk) return;
+    // 여정 링크: 기존 등록 정보 로드 → 검진센터 자동선택 + 이름 프리필
+    fetch(`${B2B_API_BASE}/checkup-requests/by-token/${encodeURIComponent(tk)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d) return;
+        if (d.patient_name) setName(d.patient_name);
+        if (d.hospital_name) setCenterName(d.hospital_name);
+        if (d.id != null) setRequestId(d.id);
+        if (d.status) setRemoteStatus(d.status);
+        // 이미 제출/확정된 링크면 바로 상태 화면으로
+        if (d.status === "확정") {
+          setStatus("confirmed");
+          if (d.confirmed_date) setConfirmedDate(d.confirmed_date);
+          setStep(4);
+        } else if (["문진완료", "본사승인", "병원승인"].includes(d.status)) {
+          setStatus("pending");
+          setStep(4);
+        }
+      })
+      .catch(() => {
+        /* 데모: 백엔드 미연동 시 무시 */
+      });
   }, []);
 
   const program = PROGRAMS.find((p) => p.id === programId) ?? null;
@@ -223,39 +253,72 @@ export default function CheckupPage() {
   }
 
   async function requestBooking() {
-    // 검진 요청은 항상 b2b 운영 백엔드(에이전시 관리)로 전송한다.
+    // 검진 정보는 항상 b2b 운영 백엔드로 전송한다.
     try {
-      const res = await fetch(`${B2B_API_BASE}/checkup-requests`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          patient_name: name || "이름 미입력",
-          conditions,
-          meds,
-          allergy,
-          image_link: imageLink,
-          program: program?.name ?? null,
-          preferred_dates: chosenDates,
-          ref: ref || undefined,
-        }),
-      });
-      if (res.ok) {
-        const created = await res.json();
-        if (created?.id != null) setRequestId(created.id);
+      if (journey && token) {
+        // 여정 링크: 기존 등록 건에 사전 문진만 제출(intake) → 상태 '문진완료'
+        const res = await fetch(`${B2B_API_BASE}/checkup-requests/by-token/${encodeURIComponent(token)}/intake`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conditions,
+            meds,
+            allergy,
+            image_link: imageLink,
+            program: program?.name ?? null,
+            preferred_dates: chosenDates,
+          }),
+        });
+        if (res.ok) {
+          const u = await res.json();
+          if (u?.id != null) setRequestId(u.id);
+          setRemoteStatus(u?.status ?? "문진완료");
+        }
+      } else {
+        // 일반 등록(문진 동봉) → 새 검진 요청 생성
+        const res = await fetch(`${B2B_API_BASE}/checkup-requests`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patient_name: name || "이름 미입력",
+            conditions,
+            meds,
+            allergy,
+            image_link: imageLink,
+            program: program?.name ?? null,
+            preferred_dates: chosenDates,
+            ref: ref || undefined,
+          }),
+        });
+        if (res.ok) {
+          const created = await res.json();
+          if (created?.id != null) setRequestId(created.id);
+        }
+        setRemoteStatus("문진완료");
       }
     } catch {
       // 데모: 백엔드 미연동 시 무시하고 진행
     }
-    setRemoteStatus("요청");
     setStatus("pending");
     setStep(4);
   }
 
   // 승인 진행 상태 폴링 — 본사/검진기관 승인 결과를 환자 화면에 반영(5초 간격)
   const pollStatus = useCallback(async () => {
-    const who = (name || "이름 미입력").trim();
-    if (!who) return;
     try {
+      if (token) {
+        // 여정 링크: 토큰으로 내 건만 정확히 조회(동명이인 걱정 없음)
+        const res = await fetch(`${B2B_API_BASE}/checkup-requests/by-token/${encodeURIComponent(token)}`);
+        if (!res.ok) return;
+        const d = await res.json();
+        if (!d) return;
+        setRemoteStatus(d.status);
+        if (d.confirmed_date) setConfirmedDate(d.confirmed_date);
+        if (d.status === "확정") setStatus("confirmed");
+        return;
+      }
+      const who = (name || "이름 미입력").trim();
+      if (!who) return;
       const res = await fetch(`${B2B_API_BASE}/checkup-requests/by-patient/${encodeURIComponent(who)}`);
       if (!res.ok) return;
       const list: { id: number; status: string; confirmed_date: string | null }[] = await res.json();
@@ -268,7 +331,7 @@ export default function CheckupPage() {
     } catch {
       // 네트워크 오류는 조용히 무시(다음 폴링에서 재시도)
     }
-  }, [name, requestId]);
+  }, [name, requestId, token]);
 
   useEffect(() => {
     if (step !== 4 || status === "confirmed") return;
@@ -341,8 +404,22 @@ export default function CheckupPage() {
               <p className="mt-1 text-sm text-gray-500">검진 전 상태를 미리 확인합니다. 안내는 WhatsApp으로 받습니다.</p>
             </div>
 
+            {journey && (
+              <div className="rounded-xl border-2 border-primary/40 bg-primary-light px-4 py-3 text-sm text-primary-dark">
+                🔗 <b>검진 여정 링크</b>로 접속하셨습니다.
+                {centerName ? <> 검진센터 <b>{centerName}</b>가 자동 선택되었습니다.</> : null}
+                <br />아래 사전 문진만 작성하시면 담당 검진센터로 전달됩니다.
+              </div>
+            )}
+
             <Field label="환자 이름 (여권 영문)">
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: NGUYEN VAN AN" className={inputCls} />
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="예: NGUYEN VAN AN"
+                readOnly={journey}
+                className={`${inputCls} ${journey ? "bg-gray-100 text-gray-500" : ""}`}
+              />
             </Field>
 
             <section>
@@ -395,6 +472,13 @@ export default function CheckupPage() {
               <h2 className="text-xl font-bold text-primary-dark sm:text-2xl">병원 · 검진 프로그램 선택</h2>
               <p className="mt-1 text-sm text-gray-500">가격잠금이 적용된 프로그램입니다. 예약 시점 가격이 청구 시점까지 유지됩니다.</p>
             </div>
+
+            {journey && centerName && (
+              <div className="rounded-xl border-2 border-primary bg-primary-light px-4 py-3 text-sm text-primary-dark">
+                🏥 담당 검진센터: <b>{centerName}</b> <span className="text-primary-dark/70">(자동 선택 · 변경 불가)</span>
+                <br />아래에서 검진 프로그램만 선택하세요.
+              </div>
+            )}
 
             <div className="flex flex-col gap-4">
               {PROGRAMS.map((p) => {
