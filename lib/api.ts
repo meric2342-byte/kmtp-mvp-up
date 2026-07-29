@@ -62,6 +62,7 @@ export type Transfer = {
   driver_name: string | null;
   driver_phone: string | null;
   car_number: string | null;
+  gate: string | null;
   pickup_scheduled: string | null;
   driver_arrived: string | null;
   boarded: string | null;

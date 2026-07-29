@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS transfers (
     driver_name TEXT,
     driver_phone TEXT,
     car_number TEXT,
+    gate TEXT,                     -- 공항 픽업 대기 게이트(예: "14")
     pickup_scheduled TEXT,         -- 픽업 예정 시각
     driver_arrived TEXT,           -- 기사 도착 시각
     boarded TEXT,                  -- 탑승 완료 시각
@@ -147,6 +148,12 @@ def init_db(reset: bool = False) -> None:
     cols = [r[1] for r in conn.execute("PRAGMA table_info(notifications)")]
     if "sender" not in cols:
         conn.execute("ALTER TABLE notifications ADD COLUMN sender TEXT")
+        conn.commit()
+
+    # 가벼운 마이그레이션: transfers.gate(공항 픽업 게이트) 컬럼이 없으면 추가
+    tcols = [r[1] for r in conn.execute("PRAGMA table_info(transfers)")]
+    if "gate" not in tcols:
+        conn.execute("ALTER TABLE transfers ADD COLUMN gate TEXT")
         conn.commit()
 
     # 이미 시드되어 있으면 건너뜀
@@ -231,17 +238,17 @@ def _seed(conn: sqlite3.Connection) -> None:
         appts,
     )
 
-    # 픽업 (공항→숙소) — P001은 기사 배정/예정 상태
+    # 픽업 (공항→숙소) — P001은 기사 배정/예정 상태. gate=공항 픽업 대기 게이트.
     transfers = [
-        ("P001", "airport_to_stay", "김민수", "010-2345-6789", "12가 3456",
+        ("P001", "airport_to_stay", "김민수", "010-2345-6789", "12가 3456", "14",
          _iso(now + timedelta(minutes=90)), None, None, "scheduled"),
-        ("P002", "stay_to_hospital", "이정호", "010-9876-5432", "34나 7890",
+        ("P002", "stay_to_hospital", "이정호", "010-9876-5432", "34나 7890", None,
          _iso(now + timedelta(minutes=30)), _iso(now + timedelta(minutes=25)), None, "driver_arrived"),
-        ("P003", "hospital_to_stay", "박상우", "010-1122-3344", "56다 1212",
+        ("P003", "hospital_to_stay", "박상우", "010-1122-3344", "56다 1212", None,
          _iso(now - timedelta(days=2, hours=-4)), _iso(now - timedelta(days=2, hours=-4)), _iso(now - timedelta(days=2, hours=-4)), "completed"),
     ]
     conn.executemany(
-        "INSERT INTO transfers (patient_id, type, driver_name, driver_phone, car_number, pickup_scheduled, driver_arrived, boarded, status) VALUES (?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO transfers (patient_id, type, driver_name, driver_phone, car_number, gate, pickup_scheduled, driver_arrived, boarded, status) VALUES (?,?,?,?,?,?,?,?,?,?)",
         transfers,
     )
 
@@ -265,8 +272,11 @@ def _seed(conn: sqlite3.Connection) -> None:
     # 카톡 메시지 샘플 (P001 데모 계정의 대화 내역)
     p001_msgs = [
         ("KMTP 케어", "✈️ 현지에서 출발하셨습니다. 안전한 여정 되세요!", 30),
-        ("KMTP 케어", "🛬 한국 공항에 도착하셨습니다. 픽업 기사님이 대기 중입니다.", 26),
-        ("기사 김민수", "안녕하세요! 공항 1번 출구에서 기다리고 있습니다 🚐", 25),
+        ("KMTP 운영관리자",
+         "🚐 [공항 픽업 안내] 김민수 기사님이 14번 게이트 앞에서 기다리고 있습니다.\n"
+         "• 차량번호: 12가 3456\n• 기사 연락처: 010-2345-6789\n"
+         "게이트로 나오시면 기사님이 도와드립니다.", 26),
+        ("기사 김민수", "안녕하세요! 14번 게이트 앞에서 기다리고 있습니다 🚐", 25),
         ("KMTP 케어", "🚐 공항 픽업이 완료되었습니다. 숙소로 이동합니다.", 24),
         ("KMTP 케어", "🏨 회복스테이 체크인 완료. 편히 쉬세요.", 20),
         ("KMTP 케어", "🏥 병원에 도착하셨습니다. 국제진료센터에서 안내해 드립니다.", 6),

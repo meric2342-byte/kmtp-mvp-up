@@ -253,15 +253,40 @@ def add_journey_event(body: JourneyEventIn):
 
     # 상황별 카톡 메시지 자동 발송
     created_notifications = []
-    msg = STAGE_MESSAGES.get(body.stage)
-    if msg:
-        content, roles = msg
-        for role in roles:
+    if body.stage == "arrive_airport":
+        # 공항 도착 → 운영관리자가 배정한 픽업 기사·차량·게이트 정보를 상세히 안내(알림).
+        tr = conn.execute(
+            "SELECT driver_name, driver_phone, car_number, gate FROM transfers "
+            "WHERE patient_id = ? AND type = 'airport_to_stay' ORDER BY id DESC LIMIT 1",
+            (body.patient_id,),
+        ).fetchone()
+        if tr and (tr["driver_name"] or tr["car_number"]):
+            gate_txt = f"{tr['gate']}번 게이트" if tr["gate"] else "안내된 게이트"
+            content = (
+                f"🚐 [공항 픽업 안내] {tr['driver_name'] or '픽업'} 기사님이 {gate_txt} 앞에서 기다리고 있습니다.\n"
+                f"• 차량번호: {tr['car_number'] or '-'}\n"
+                f"• 기사 연락처: {tr['driver_phone'] or '-'}\n"
+                f"게이트로 나오시면 기사님이 도와드립니다."
+            )
+        else:
+            content = "🚐 공항 픽업 기사님이 대기 중입니다. 잠시만 기다려 주세요."
+        # 환자에게 알림 + 에이전트에게도 공유. 발신자 = 운영관리자.
+        for role in ("patient", "agent"):
             ncur = conn.execute(
                 "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,0,?)",
-                (body.patient_id, role, "in_app", content, now, "KMTP 케어"),
+                (body.patient_id, role, "in_app", content, now, "KMTP 운영관리자"),
             )
             created_notifications.append(ncur.lastrowid)
+    else:
+        msg = STAGE_MESSAGES.get(body.stage)
+        if msg:
+            content, roles = msg
+            for role in roles:
+                ncur = conn.execute(
+                    "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,0,?)",
+                    (body.patient_id, role, "in_app", content, now, "KMTP 케어"),
+                )
+                created_notifications.append(ncur.lastrowid)
 
     conn.commit()
     conn.close()

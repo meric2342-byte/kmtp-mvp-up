@@ -68,6 +68,19 @@ export default function PatientJourney({
     transfers.data?.[0] ??
     null;
 
+  // 공항 도착 완료 시 → 운영관리자 픽업 안내(차량·기사·게이트) + WhatsApp
+  const arrivedAirport =
+    journey.data?.done_stages.includes("arrive_airport") ?? false;
+  const airportPickup =
+    transfers.data?.find((t) => t.type === "airport_to_stay") ?? null;
+  const gateLabel = airportPickup?.gate
+    ? `${airportPickup.gate}번 게이트`
+    : "안내된 게이트";
+  const pickupMsg = airportPickup
+    ? `🚐 [공항 픽업 안내] ${airportPickup.driver_name ?? "픽업"} 기사님이 ${gateLabel} 앞에서 기다리고 있습니다.\n차량번호: ${airportPickup.car_number ?? "-"}\n연락처: ${airportPickup.driver_phone ?? "-"}`
+    : "";
+  const pickupWhatsApp = `https://wa.me/?text=${encodeURIComponent(pickupMsg)}`;
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -107,6 +120,42 @@ export default function PatientJourney({
 
       {journey.data && (
         <>
+          {/* 공항 도착 시 운영관리자 픽업 안내 — 차량·기사·게이트 + WhatsApp/전화 */}
+          {arrivedAirport && airportPickup && (
+            <div className="rounded-2xl border-2 border-primary bg-primary-light px-5 py-4">
+              <p className="font-bold text-primary-dark">🚐 공항 픽업 안내 · KMTP 운영관리자</p>
+              <p className="mt-1.5 text-sm text-gray-700">
+                <b>{airportPickup.driver_name}</b> 기사님이{" "}
+                <b>{gateLabel}</b> 앞에서 기다리고 있습니다.
+              </p>
+              <p className="mt-0.5 text-sm text-gray-600">
+                차량번호 <b>{airportPickup.car_number}</b>
+                {airportPickup.driver_phone && <> · 📞 {airportPickup.driver_phone}</>}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a
+                  href={pickupWhatsApp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-green-600"
+                >
+                  📱 WhatsApp으로 안내 받기
+                </a>
+                {airportPickup.driver_phone && (
+                  <a
+                    href={`tel:${airportPickup.driver_phone}`}
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary-dark"
+                  >
+                    📞 기사에게 전화
+                  </a>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                ✅ 이 안내는 알림(메시지)으로도 전달되었습니다.
+              </p>
+            </div>
+          )}
+
           {/* 새로 시작하는 환자: 아직 완료된 단계가 없으면 '여정 시작 전' 안내 */}
           {journey.data.done_stages.length === 0 && (
             <div className="rounded-2xl border border-primary/20 bg-primary-light/40 px-6 py-5">
@@ -145,6 +194,7 @@ export default function PatientJourney({
                   </p>
                   <p className="mt-1 text-xs text-gray-500">
                     기사 {activeTransfer.driver_name} · {activeTransfer.car_number}
+                    {activeTransfer.gate && <> · 🚪 {activeTransfer.gate}번 게이트</>}
                     {activeTransfer.pickup_scheduled && (
                       <>
                         {" · 예정 "}
