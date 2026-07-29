@@ -419,6 +419,20 @@ export default function CheckupPage() {
                 담당자가 확인 후 <b>사전 문진 링크</b>를 보내드립니다.<br />
                 링크를 받으시면 검진센터가 자동 선택된 상태로 문진을 작성하실 수 있습니다.
               </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setRegistered(false);
+                  setName("");
+                  setRegNationality("");
+                  setRegContact("");
+                  setRegHospitalId("");
+                  setRegError(null);
+                }}
+                className="mt-2 rounded-xl border-2 border-primary px-6 py-3 text-sm font-bold text-primary transition-colors hover:bg-white"
+              >
+                ↩ 처음으로 돌아가기
+              </button>
             </div>
           ) : (
             <div className="flex flex-col gap-6">
