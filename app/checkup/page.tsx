@@ -4,6 +4,7 @@
 // 4단계: 사전문진 → 병원·프로그램 선택 → 예약 요청 → 병원 컨펌
 import { useCallback, useEffect, useState } from "react";
 import { B2B_API_BASE } from "@/lib/api";
+import { ensurePushSubscribed } from "@/lib/push";
 
 const CONDITIONS = ["고혈압", "당뇨", "심장질환", "신장질환", "갑상선", "없음"];
 
@@ -213,6 +214,7 @@ export default function CheckupPage() {
   const [registered, setRegistered] = useState(false);
   const [regSubmitting, setRegSubmitting] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
+  const [pushMsg, setPushMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -777,6 +779,20 @@ export default function CheckupPage() {
                     </button>
                   )}
                 </div>
+                {/* 웹 푸시: 앱을 닫아도 견적·확정 알림 수신(강제 팝업 금지, 버튼) */}
+                {journey && requestId && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const ok = await ensurePushSubscribed(`patient:${requestId}`);
+                      setPushMsg(ok ? "🔔 실시간 알림이 켜졌습니다 · Alerts on" : "알림을 켤 수 없어요. 앱 설치·브라우저 권한을 확인해 주세요.");
+                    }}
+                    className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white hover:bg-primary-dark"
+                  >
+                    🔔 실시간 알림 받기 · Get updates
+                  </button>
+                )}
+                {pushMsg && <p className="text-center text-[11px] text-gray-500">{pushMsg}</p>}
                 <p className="text-center text-[11px] text-gray-400">승인이 진행되면 자동으로 갱신됩니다.{journey && remoteStatus === "문진완료" ? " 본사 승인 전까지 문진을 수정할 수 있습니다." : ""}</p>
               </div>
             )}

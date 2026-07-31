@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KMTP — Offline</title>
+  <style>
+    body { margin:0; height:100vh; display:flex; align-items:center; justify-content:center;
+           font-family: system-ui, -apple-system, sans-serif; background:#f5f7fa; color:#0F766E; }
+    .box { text-align:center; padding:24px; }
+    h1 { font-size:20px; margin:0 0 8px; }
+    p { color:#555; font-size:14px; margin:0 0 16px; }
+    button { background:#0F766E; color:#fff; border:0; border-radius:10px; padding:10px 20px;
+             font-weight:700; font-size:14px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>연결이 끊겼어요 · You're offline</h1>
+    <p>네트워크 연결을 확인한 뒤 다시 시도해 주세요.<br/>Please check your connection and try again.</p>
+    <button onclick="location.reload()">다시 시도 · Retry</button>
+  </div>
+</body>
+</html>
