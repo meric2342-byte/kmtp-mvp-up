@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import PwaSetup from "@/components/PwaSetup";
+import WhatsAppFab from "@/components/WhatsAppFab";
 
 export const metadata: Metadata = {
   title: "KMTP — 한국 의료관광 신뢰 플랫폼",
@@ -27,6 +28,7 @@ export default function RootLayout({
     <html lang="ko" className="h-full antialiased">
       <body className="min-h-full">
         {children}
+        <WhatsAppFab />
         <PwaSetup />
       </body>
     </html>

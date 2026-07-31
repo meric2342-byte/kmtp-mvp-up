@@ -811,6 +811,18 @@ export default function CheckupPage() {
               </div>
             )}
 
+            {/* 상담→예약 전환: 현재 케이스 요약이 담긴 WhatsApp 메시지 자동 작성(언니가이드 벤치마크) */}
+            <a
+              href={`https://wa.me/821055057004?text=${encodeURIComponent(
+                `[KMTP 검진 상담]\n이름: ${name || "-"}\n프로그램: ${program?.name || "-"}\n상태: ${remoteStatus}\n상담 요청드립니다.`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 rounded-xl bg-green-500 px-6 py-3 text-sm font-bold text-white hover:bg-green-600"
+            >
+              💬 상담원과 상의하기 · Chat with a coordinator
+            </a>
+
             <div className="flex justify-between">
               <button type="button" onClick={() => setStep(3)} className={prevCls}>← 이전</button>
               <button type="button" onClick={() => { setStep(1); setStatus("none"); setConfirmedDate(null); setRequestId(null); setRemoteStatus("요청"); }} className="text-sm font-semibold text-primary underline-offset-2 hover:underline">
