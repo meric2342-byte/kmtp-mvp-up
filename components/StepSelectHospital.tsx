@@ -358,6 +358,11 @@ export default function StepSelectHospital({
           {/* ④ 가격 확인 + 날짜·시간 개별 지정 */}
           {formStep === "confirm" && selProc && selHospitalId && (
             <div>
+              {/* 이전(병원) 으로 돌아가기 — ②③ 서브스텝과 동일 패턴 */}
+              <button type="button" onClick={() => setFormStep("hospital")}
+                className="mb-3 flex items-center gap-1 text-xs text-primary hover:underline">
+                ← {hospitalOf(selHospitalId)?.name}
+              </button>
               {/* 가격 공개 */}
               <div className="mb-4 rounded-xl border-2 border-primary/30 bg-primary-light/40 px-4 py-4">
                 <p className="text-xs text-gray-500 mb-1">

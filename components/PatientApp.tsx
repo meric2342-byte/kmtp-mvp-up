@@ -14,7 +14,6 @@ import StepQuoteRequest from "@/components/StepQuoteRequest";
 import StepEscrow from "@/components/StepEscrow";
 import StepTrust from "@/components/StepTrust";
 import MyQuotes from "@/components/MyQuotes";
-import { HOSPITALS, formatKRW } from "@/lib/data";
 import { findAccommodation, stayTotal } from "@/lib/accommodations";
 import { saveDraft, loadDraft, clearDraft, newCaseId } from "@/lib/draft";
 import { loadLastNationality, saveLastNationality } from "@/lib/profile";
@@ -26,8 +25,6 @@ type Props = {
 };
 
 type Tab = "journey" | "booking" | "quotes" | "messages";
-
-const KMTP_WA = "821012345678";
 
 export default function PatientApp({ account, onLogout }: Props) {
   const [tab, setTab] = useState<Tab>("booking");
@@ -112,17 +109,6 @@ export default function PatientApp({ account, onLogout }: Props) {
   const stayTotalAmount = selectedRoom ? stayTotal(selectedRoom, nights) : 0;
   const serviceTotal = services.reduce((s, sv) => s + (sv.priceKRW ?? 0), 0);
   const grandTotal = treatmentTotal + stayTotalAmount + serviceTotal;
-
-  // WhatsApp link
-  const isKorean = nationality === "대한민국" || nationality === "한국";
-  const procSummary = bookings
-    .slice(0, 2)
-    .map((b) => `${b.procedureName}@${HOSPITALS.find((h) => h.id === b.hospitalId)?.name ?? ""}`)
-    .join(", ");
-  const waText = `[KMTP견적문의] 국적:${nationality || "미선택"} / 시술:${procSummary || "미선택"} / 합계:${formatKRW(grandTotal)}`;
-  const waLink = isKorean
-    ? "https://open.kakao.com/o/kmtp"
-    : `https://wa.me/${KMTP_WA}?text=${encodeURIComponent(waText)}`;
 
   function handleRestart() {
     clearDraft(account.id);   // 이 계정의 저장된 선택도 함께 비운다
@@ -310,19 +296,7 @@ export default function PatientApp({ account, onLogout }: Props) {
           </>
         )}
       </main>
-
-      {/* WhatsApp floating button */}
-      {tab === "booking" && (
-        <a
-          href={waLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-green-500 px-4 py-3 text-sm font-bold text-white shadow-lg hover:bg-green-600 transition-colors"
-        >
-          <span>💬</span>
-          <span className="hidden sm:inline">견적 문의</span>
-        </a>
-      )}
+      {/* 상담 버튼은 전역 접이식 FAB(WhatsAppFab)로 일원화 — 중복 방지 위해 여기 인라인 FAB 제거 */}
     </div>
   );
 }

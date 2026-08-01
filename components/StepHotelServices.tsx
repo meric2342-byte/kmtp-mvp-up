@@ -418,19 +418,16 @@ export default function StepHotelServices({
                   />
                 </div>
 
-                {/* 날짜·픽업 시간 */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <p className="mb-1 text-xs font-semibold text-gray-600">날짜</p>
+                {/* 날짜·픽업 시간 — 공항픽업과 동일한 컴팩트 형식 */}
+                <div>
+                  <p className="mb-1 text-xs font-semibold text-gray-600">픽업 날짜·시간</p>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <input
                       type="date"
                       value={form.date}
                       onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
                       className={inp}
                     />
-                  </div>
-                  <div>
-                    <p className="mb-1 text-xs font-semibold text-gray-600">픽업 시간</p>
                     <input
                       type="time"
                       value={form.time}
