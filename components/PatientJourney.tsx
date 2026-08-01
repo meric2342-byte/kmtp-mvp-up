@@ -205,12 +205,22 @@ export default function PatientJourney({
                     )}
                   </p>
                   {activeTransfer.driver_phone && (
-                    <a
-                      href={`tel:${activeTransfer.driver_phone}`}
-                      className="mt-2 inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white hover:bg-primary-dark"
-                    >
-                      📞 기사에게 전화
-                    </a>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <a
+                        href={`tel:${activeTransfer.driver_phone}`}
+                        className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white hover:bg-primary-dark"
+                      >
+                        📞 기사에게 전화
+                      </a>
+                      <a
+                        href={`https://wa.me/${activeTransfer.driver_phone.replace(/[^0-9]/g, "").replace(/^0/, "82")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-lg bg-green-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-600"
+                      >
+                        💬 WhatsApp
+                      </a>
+                    </div>
                   )}
                 </div>
               ) : (

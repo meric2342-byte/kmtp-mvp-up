@@ -7,7 +7,9 @@ KMTP 백엔드 — FastAPI 앱
 문서:  http://localhost:8000/docs  (자동 생성 API 문서)
 """
 
+import json
 import os
+import urllib.request
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
@@ -52,6 +54,35 @@ app.add_middleware(
 
 def _now_iso() -> str:
     return datetime.now().replace(microsecond=0).isoformat()
+
+
+# b2b(Railway) 운영 콘솔로 이벤트 브리지 — 관리자가 b2b에서 SSE·웹푸시로 여정 알림 수신.
+# 서버-투-서버(백엔드→백엔드), 실패해도 여정 처리에 영향 없음(best-effort).
+B2B_INGEST_URL = os.getenv(
+    "B2B_INGEST_URL",
+    "https://kmtp-b2b-api-production.up.railway.app/notifications/ingest",
+)
+
+
+def _patient_name(conn, patient_id: str) -> str:
+    row = conn.execute("SELECT name FROM patients WHERE id = ?", (patient_id,)).fetchone()
+    return (row["name"] if row and row["name"] else patient_id)
+
+
+def _forward_to_b2b(event_type: str, message: str, audience: str = "admin", link: str = "/admin/insights") -> None:
+    """b2b 알림함으로 이벤트 전달(관리자/에이전시). 조용히 실패."""
+    try:
+        data = json.dumps(
+            {"audience": audience, "event_type": event_type, "message": message, "link": link},
+            ensure_ascii=False,
+        ).encode("utf-8")
+        req = urllib.request.Request(
+            B2B_INGEST_URL, data=data,
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
+        urllib.request.urlopen(req, timeout=4).close()
+    except Exception:
+        pass  # 브리지 실패는 무시(여정 기록은 그대로 유지)
 
 
 def _rows(cur) -> list[dict]:
@@ -115,16 +146,18 @@ class TransferUpdate(BaseModel):
 
 # 단계별 카톡 메시지: stage -> (메시지 내용, 받을 역할 목록)
 # 각 상황마다 친근한 카톡 메시지를 자동 발송합니다.
+# 모든 단계 알림은 환자·담당 에이전트·운영관리자(admin)에게 전달한다.
+# (여정 시작=depart_home 부터 admin·agent에게 알람이 가도록 admin 포함)
 STAGE_MESSAGES: dict[str, tuple[str, list[str]]] = {
-    "depart_home": ("✈️ 현지에서 출발하셨습니다. 안전한 여정 되세요!", ["patient", "agent"]),
-    "arrive_airport": ("🛬 한국 공항에 도착하셨습니다. 픽업 기사님이 대기 중입니다.", ["patient", "agent"]),
-    "airport_pickup": ("🚐 공항 픽업이 완료되었습니다. 숙소로 이동합니다.", ["patient", "agent", "hospital"]),
-    "checkin_stay": ("🏨 회복스테이 체크인 완료. 편히 쉬세요.", ["patient", "agent"]),
-    "visit_hospital": ("🏥 병원에 도착하셨습니다. 국제진료센터에서 안내해 드립니다.", ["patient", "agent", "hospital"]),
-    "surgery": ("🩺 시술/수술이 진행되었습니다. 회복을 도와드릴게요.", ["patient", "agent", "hospital"]),
-    "recovery": ("🌿 진료 종료 후 숙소로 복귀하셨습니다. 회복 잘 하세요!", ["patient", "agent"]),
-    "follow_up": ("📋 재진이 완료되었습니다. 경과가 양호합니다.", ["patient", "agent"]),
-    "departure": ("🛫 출국하셨습니다. 한국에서의 치료 여정을 마칩니다. 건강하세요!", ["patient", "agent"]),
+    "depart_home": ("✈️ 현지에서 출발하셨습니다. 안전한 여정 되세요!", ["patient", "agent", "admin"]),
+    "arrive_airport": ("🛬 한국 공항에 도착하셨습니다. 픽업 기사님이 대기 중입니다.", ["patient", "agent", "admin"]),
+    "airport_pickup": ("🚐 공항 픽업이 완료되었습니다. 숙소로 이동합니다.", ["patient", "agent", "hospital", "admin"]),
+    "checkin_stay": ("🏨 회복스테이 체크인 완료. 편히 쉬세요.", ["patient", "agent", "admin"]),
+    "visit_hospital": ("🏥 병원에 도착하셨습니다. 국제진료센터에서 안내해 드립니다.", ["patient", "agent", "hospital", "admin"]),
+    "surgery": ("🩺 시술/수술이 진행되었습니다. 회복을 도와드릴게요.", ["patient", "agent", "hospital", "admin"]),
+    "recovery": ("🌿 진료 종료 후 숙소로 복귀하셨습니다. 회복 잘 하세요!", ["patient", "agent", "admin"]),
+    "follow_up": ("📋 재진이 완료되었습니다. 경과가 양호합니다.", ["patient", "agent", "admin"]),
+    "departure": ("🛫 출국하셨습니다. 한국에서의 치료 여정을 마칩니다. 건강하세요!", ["patient", "agent", "admin"]),
 }
 
 TRANSFER_LABEL: dict[str, str] = {
@@ -270,8 +303,8 @@ def add_journey_event(body: JourneyEventIn):
             )
         else:
             content = "🚐 공항 픽업 기사님이 대기 중입니다. 잠시만 기다려 주세요."
-        # 환자에게 알림 + 에이전트에게도 공유. 발신자 = 운영관리자.
-        for role in ("patient", "agent"):
+        # 환자에게 알림 + 에이전트·운영관리자에게도 공유. 발신자 = 운영관리자.
+        for role in ("patient", "agent", "admin"):
             ncur = conn.execute(
                 "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,0,?)",
                 (body.patient_id, role, "in_app", content, now, "KMTP 운영관리자"),
@@ -288,8 +321,11 @@ def add_journey_event(body: JourneyEventIn):
                 )
                 created_notifications.append(ncur.lastrowid)
 
+    pname = _patient_name(conn, body.patient_id)
     conn.commit()
     conn.close()
+    # b2b 관리자 콘솔로 여정 이벤트 브리지(여정 시작 포함) → SSE·웹푸시
+    _forward_to_b2b("여정", f"{pname}님 여정 진행: {STAGE_LABEL.get(body.stage, body.stage)}", link="/admin/insights")
     return {"event_id": event_id, "notifications": created_notifications}
 
 
@@ -330,21 +366,42 @@ def update_transfer(transfer_id: int, body: TransferUpdate):
         conn.close()
         raise HTTPException(404, "transfer not found")
 
-    # '탑승 완료(boarded)' 시 알림 생성 (가이드: 병원행 탑승 완료 → 환자·에이전트·병원)
-    if body.status == "boarded":
-        roles = ["patient", "agent"]
-        if row["type"] == "stay_to_hospital":
-            roles.append("hospital")
-        kind = TRANSFER_LABEL.get(row["type"], "이동")
-        sender = f"기사 {row['driver_name']}" if row["driver_name"] else "기사"
+    kind = TRANSFER_LABEL.get(row["type"], "이동")
+    sender = f"기사 {row['driver_name']}" if row["driver_name"] else "기사"
+    # 기사 연락처 안내(환자가 기사와 직접 소통할 수 있도록 이름·차량·전화 포함)
+    driver_line = (
+        f"기사 {row['driver_name'] or '-'} · 차량 {row['car_number'] or '-'} · 연락처 {row['driver_phone'] or '-'}"
+    )
+
+    # '기사 도착(driver_arrived)' 시: 환자에게 기사 연락처 안내 + 관리자·에이전트 공유
+    if body.status == "driver_arrived":
+        roles = ["patient", "agent", "admin"]
+        content = f"🚕 [{kind}] 기사님이 도착했습니다.\n{driver_line}\n전화·메시지로 연락하실 수 있습니다."
         for role in roles:
             conn.execute(
                 "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,0,?)",
-                (row["patient_id"], role, "in_app", f"🚗 [{kind}] 차량 탑승이 완료되었습니다.", now, sender),
+                (row["patient_id"], role, "in_app", content, now, "KMTP 운영관리자"),
             )
 
+    # '탑승 완료(boarded)' 시 알림 생성 → 환자·에이전트·운영관리자(+병원행이면 병원)
+    if body.status == "boarded":
+        roles = ["patient", "agent", "admin"]
+        if row["type"] == "stay_to_hospital":
+            roles.append("hospital")
+        content = f"🚗 [{kind}] 차량 탑승이 완료되었습니다.\n{driver_line}"
+        for role in roles:
+            conn.execute(
+                "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,0,?)",
+                (row["patient_id"], role, "in_app", content, now, sender),
+            )
+
+    pname = _patient_name(conn, row["patient_id"])
     conn.commit()
     conn.close()
+    # 배차/픽업/기사 이벤트를 b2b 관리자 콘솔로 브리지(기사 연락처 포함)
+    if body.status in ("driver_arrived", "boarded"):
+        label = "기사 도착" if body.status == "driver_arrived" else "탑승 완료"
+        _forward_to_b2b("픽업", f"{pname}님 [{kind}] {label} · {driver_line}", link="/admin/insights")
     return dict(row)
 
 
