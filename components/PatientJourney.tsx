@@ -2,7 +2,7 @@
 
 // 환자 본인의 여정 화면 — 내 일정·픽업 연락처·병원 위치/시간 + 타임라인
 // (작업 5에서 '기사에게 전화' 버튼·단계 진행·알림이 추가됩니다)
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Account } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { STAGES } from "@/lib/journey";
@@ -40,6 +40,20 @@ export default function PatientJourney({
     [account.id],
   );
   const [posting, setPosting] = useState(false);
+
+  // 실시간 반영: 운영자(admin)가 기록한 여정 이벤트·기사정보가 자동으로 타임라인에 진행되도록
+  // 12초 폴링 + 탭 복귀 시 즉시 재조회. (기존엔 본인이 버튼 누를 때만 갱신돼 '정체'처럼 보임)
+  useEffect(() => {
+    const reload = () => { journey.reload(); transfers.reload(); };
+    const t = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      reload();
+    }, 12000);
+    const onFocus = () => reload();
+    window.addEventListener("focus", onFocus);
+    return () => { clearInterval(t); window.removeEventListener("focus", onFocus); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account.id]);
 
   const LAST_STAGE = STAGES[STAGES.length - 1].key; // departure(출국)
 

@@ -144,6 +144,16 @@ class TransferUpdate(BaseModel):
     status: str  # scheduled / driver_arrived / boarded / completed
 
 
+class TransferCreate(BaseModel):
+    patient_id: str
+    type: str = "airport_to_stay"  # airport_to_stay / stay_to_hospital / hospital_to_stay
+    driver_name: Optional[str] = None
+    driver_phone: Optional[str] = None
+    car_number: Optional[str] = None
+    gate: Optional[str] = None
+    pickup_scheduled: Optional[str] = None
+
+
 # 단계별 카톡 메시지: stage -> (메시지 내용, 받을 역할 목록)
 # 각 상황마다 친근한 카톡 메시지를 자동 발송합니다.
 # 모든 단계 알림은 환자·담당 에이전트·운영관리자(admin)에게 전달한다.
@@ -343,6 +353,34 @@ def list_transfers(patient_id: Optional[str] = None):
         rows = _rows(conn.execute("SELECT * FROM transfers"))
     conn.close()
     return rows
+
+
+@app.post("/transfers")
+def create_transfer(body: TransferCreate):
+    """운영자(admin)가 픽업 기사 정보를 배정/수정한다(환자+이동유형 기준 upsert).
+    이후 공항도착·탑승 이벤트 알림에 이 기사 정보(이름·차량·연락처·게이트)가 포함된다."""
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT id FROM transfers WHERE patient_id = ? AND type = ? ORDER BY id DESC LIMIT 1",
+        (body.patient_id, body.type),
+    ).fetchone()
+    if row:
+        conn.execute(
+            "UPDATE transfers SET driver_name=?, driver_phone=?, car_number=?, gate=?, pickup_scheduled=? WHERE id=?",
+            (body.driver_name, body.driver_phone, body.car_number, body.gate, body.pickup_scheduled, row["id"]),
+        )
+        tid = row["id"]
+    else:
+        cur = conn.execute(
+            "INSERT INTO transfers (patient_id, type, driver_name, driver_phone, car_number, gate, pickup_scheduled, status) "
+            "VALUES (?,?,?,?,?,?,?, 'scheduled')",
+            (body.patient_id, body.type, body.driver_name, body.driver_phone, body.car_number, body.gate, body.pickup_scheduled),
+        )
+        tid = cur.lastrowid
+    conn.commit()
+    out = dict(conn.execute("SELECT * FROM transfers WHERE id=?", (tid,)).fetchone())
+    conn.close()
+    return out
 
 
 @app.patch("/transfers/{transfer_id}")
