@@ -63,6 +63,13 @@ export default function CheckupSelectPage() {
     catch { setErr("에스크로 진행 실패"); } finally { setBusy(false); }
   }
 
+  async function finalConfirm() {
+    if (!token) return;
+    setBusy(true);
+    try { const res = await fetch(`${B2B_API_BASE}/agency-checkup/by-token/${encodeURIComponent(token)}/final-confirm`, { method: "POST" }); if (!res.ok) throw new Error(); await load(token); }
+    catch { setErr("최종 확인 실패"); } finally { setBusy(false); }
+  }
+
   const header = (
     <header className="border-b border-gray-100 bg-white">
       <div className="mx-auto flex max-w-2xl items-center gap-2 px-5 py-4">
@@ -98,19 +105,33 @@ export default function CheckupSelectPage() {
               ? <button onClick={escrow} disabled={busy} className="rounded-xl bg-primary px-6 py-3 font-bold text-white hover:bg-primary-dark disabled:bg-gray-300">에스크로 진행 · Proceed to escrow</button>
               : <p className="text-center text-sm font-bold text-primary-dark">에스크로 진행이 시작되었습니다</p>}
           </div>
-        ) : data.status === "센터컨펌중" ? (
+        ) : data.status === "환자최종컨펌대기" ? (
+          <div className="flex flex-col gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-primary-dark sm:text-2xl">최종 확인</h2>
+              <p className="mt-1 text-sm text-gray-500">{data.patient_name}님, 아래 검진으로 진행할지 최종 확인해 주세요.</p>
+            </div>
+            <div className="rounded-2xl border-2 border-primary bg-primary-light px-5 py-4">
+              <p className="font-bold text-primary-dark">{chosen?.hospital_name} · {chosen?.program_name}</p>
+              <p className="mt-1 text-sm text-gray-600">{won(chosen?.price_krw ?? 0)} · {chosen?.proposed_date} {chosen?.proposed_time}</p>
+            </div>
+            <button type="button" onClick={finalConfirm} disabled={busy} className="rounded-xl bg-primary px-6 py-3 font-bold text-white hover:bg-primary-dark disabled:bg-gray-300">
+              ✓ 이 검진으로 최종 확인 · Confirm
+            </button>
+          </div>
+        ) : ["에이전시조율중", "센터컨펌중", "센터조율완료", "환자최종컨펌"].includes(data.status) ? (
           <div className="flex flex-col gap-3">
-            <p className="text-sm text-gray-500">{data.patient_name}님, 아래 검진을 선택하셨습니다. 검진센터가 시간을 확정하는 중입니다.</p>
             <div className="rounded-2xl border-2 border-primary bg-primary-light px-5 py-4">
               <p className="font-bold text-primary-dark">🧭 {chosen?.hospital_name} · {chosen?.program_name}</p>
               <p className="mt-1 text-sm text-gray-600">{won(chosen?.price_krw ?? 0)} · 희망 {chosen?.proposed_date} {chosen?.proposed_time}</p>
             </div>
-            <p className="text-center text-[11px] text-gray-400">센터 확정 시 자동으로 갱신됩니다.</p>
-          </div>
-        ) : data.status === "환자선택완료" ? (
-          <div className="rounded-2xl border-2 border-primary bg-primary-light px-5 py-4 text-center">
-            <p className="font-bold text-primary-dark">✅ 검진센터 시간 컨펌 완료</p>
-            <p className="mt-1 text-sm text-gray-600">{chosen?.hospital_name} · {chosen?.program_name} · {chosen?.proposed_date}<br />에이전시 최종 확정을 기다려 주세요.</p>
+            <p className="text-center text-sm text-gray-500">
+              {data.status === "에이전시조율중" && "에이전시가 검진센터와 시간을 조율하고 있습니다."}
+              {data.status === "센터컨펌중" && "검진센터가 시간을 확인하고 있습니다."}
+              {data.status === "센터조율완료" && "시간이 조율되었습니다. 곧 최종 확인 요청이 도착합니다."}
+              {data.status === "환자최종컨펌" && "최종 확인 완료 — 검진 확정을 준비하고 있습니다."}
+            </p>
+            <p className="text-center text-[11px] text-gray-400">진행 시 자동으로 갱신됩니다.</p>
           </div>
         ) : pickMode ? (
           <div className="flex flex-col gap-5">
