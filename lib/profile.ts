@@ -20,6 +20,7 @@ export type PatientProfile = {
   passportNumber: string; // 여권번호
   passportExpiry: string; // 여권 만료일
   department: string;     // 진료과 (자유입력)
+  whatsapp: string;       // 왓츠앱 번호(국가코드 포함, 예: +8210…) — 실시간 안내 채널
 };
 
 export const EMPTY_PROFILE: PatientProfile = {
@@ -29,6 +30,7 @@ export const EMPTY_PROFILE: PatientProfile = {
   passportNumber: "",
   passportExpiry: "",
   department: "",
+  whatsapp: "",
 };
 
 // ⚠️ profile은 반드시 '계정별'로 분리 저장한다(draft.ts와 동일 원칙).

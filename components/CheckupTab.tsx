@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Account } from "@/lib/auth";
 import { B2B_API_BASE } from "@/lib/api";
 import { ensurePushSubscribed } from "@/lib/push";
+import { loadProfile } from "@/lib/profile";
 
 interface Program { id: number; hospital_id: number; hospital_name: string; name: string; price_krw: number; duration?: string | null; includes?: string | null; }
 interface MyReq { id: number; program: string | null; status: string; confirmed_date: string | null; preferred_dates: string | null; }
@@ -64,6 +65,7 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
           hospital_id: sel.hospital_id,
           program: `${sel.name} · ${sel.hospital_name}`,
           quote_amount: sel.price_krw,
+          contact: loadProfile(account.id).whatsapp || undefined,
           preferred_dates: preferred,
           conditions: conditions.length ? conditions : undefined,
           meds: meds || undefined,

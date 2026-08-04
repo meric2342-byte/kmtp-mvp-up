@@ -290,6 +290,21 @@ export default function Login({ onLogin }: Props) {
             />
           </div>
 
+          {/* 왓츠앱 번호 — 실시간 안내(픽업·검진·여정) 연락 채널 */}
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-gray-600">
+              WhatsApp 번호 (국가코드 포함)
+            </label>
+            <input
+              type="tel"
+              value={profile.whatsapp}
+              onChange={(e) => setP("whatsapp", e.target.value)}
+              placeholder="예: +8210xxxxxxxx"
+              className={inputCls}
+            />
+            <p className="mt-1 text-[11px] text-gray-400">픽업·검진·여정 안내를 실시간으로 받는 채널입니다.</p>
+          </div>
+
           {error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
               {error}

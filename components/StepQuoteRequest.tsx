@@ -139,6 +139,7 @@ export default function StepQuoteRequest({
           case_id: caseId,
           patient_name: patientName,
           nationality,
+          contact: profile.whatsapp || undefined,
           companions,
           accommodation_id: accommodationId ?? null,
           grand_total: grandTotal,
