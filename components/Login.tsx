@@ -6,8 +6,10 @@
 import { useState } from "react";
 import { authenticate, type Account } from "@/lib/auth";
 import { api } from "@/lib/api";
+import { clearDraft } from "@/lib/draft";
 import {
   saveProfile,
+  saveLastNationality,
   fullName,
   EMPTY_PROFILE,
   type PatientProfile,
@@ -80,6 +82,11 @@ export default function Login({ onLogin }: Props) {
         nationality: profile.nationality || undefined,
         department: profile.department || undefined,
       });
+      // 신규 가입 = 이 사람에게 완전히 새 계정. SQLite 재시작으로 환자 id(P00x)가 재사용될 수 있어
+      // 같은 id로 남아있던 '이전 사람의 선택(draft)'이 딸려오지 않도록 이 계정의 draft를 먼저 비운다.
+      clearDraft(acc.id);
+      // 기기 단위 '직전 국적'도 이 가입자의 국적으로 갱신 → 부킹 단계에 이전 사람 국적이 남지 않게.
+      saveLastNationality(profile.nationality || "");
       // 여권 등 상세 프로필은 로컬에 보관(계정별) → 검진·부가서비스 요청 시 b2b로 함께 전달
       saveProfile(profile, acc.id);
       onLogin(
