@@ -128,6 +128,16 @@ CREATE TABLE IF NOT EXISTS satisfaction (
     score INTEGER,
     comment TEXT
 );
+
+CREATE TABLE IF NOT EXISTS interpreters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id TEXT REFERENCES patients(id),  -- 환자 1인당 1건(업서트)
+    name TEXT,                     -- 통역사 이름
+    phone TEXT,                    -- 통역사 연락처
+    lang TEXT,                     -- 통역 언어(예: 영어, 중국어)
+    note TEXT,                     -- 비고(가능 시간 등)
+    created_at TEXT
+);
 """
 
 

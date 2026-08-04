@@ -35,6 +35,7 @@ export default function PatientJourney({
 }: Props) {
   const journey = useAsync(() => api.journey(account.id), [account.id]);
   const transfers = useAsync(() => api.transfers(account.id), [account.id]);
+  const interpreters = useAsync(() => api.interpreters(account.id), [account.id]);
   const appts = useAsync(
     () => api.appointments({ patient_id: account.id }),
     [account.id],
@@ -44,7 +45,7 @@ export default function PatientJourney({
   // 실시간 반영: 운영자(admin)가 기록한 여정 이벤트·기사정보가 자동으로 타임라인에 진행되도록
   // 12초 폴링 + 탭 복귀 시 즉시 재조회. (기존엔 본인이 버튼 누를 때만 갱신돼 '정체'처럼 보임)
   useEffect(() => {
-    const reload = () => { journey.reload(); transfers.reload(); };
+    const reload = () => { journey.reload(); transfers.reload(); interpreters.reload(); };
     const t = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       reload();
@@ -248,6 +249,40 @@ export default function PatientJourney({
               )}
             </div>
           </div>
+
+          {/* 통역사 안내 — 운영관리자가 배정하면 표시 */}
+          {interpreters.data && interpreters.data.length > 0 && (interpreters.data[0].name || interpreters.data[0].phone) && (
+            <div className="rounded-2xl border border-gray-100 bg-white p-5">
+              <h3 className="text-sm font-bold text-gray-700">통역사 안내</h3>
+              <div className="mt-2 text-sm text-gray-600">
+                <p>
+                  🗣️ {interpreters.data[0].name ?? "통역사"}
+                  {interpreters.data[0].lang && <> · {interpreters.data[0].lang}</>}
+                </p>
+                {interpreters.data[0].note && (
+                  <p className="mt-1 text-xs text-gray-500">{interpreters.data[0].note}</p>
+                )}
+                {interpreters.data[0].phone && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <a
+                      href={`tel:${interpreters.data[0].phone}`}
+                      className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white hover:bg-primary-dark"
+                    >
+                      📞 통역사에게 전화
+                    </a>
+                    <a
+                      href={`https://wa.me/${interpreters.data[0].phone.replace(/[^0-9]/g, "").replace(/^0/, "82")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-lg bg-green-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-600"
+                    >
+                      💬 WhatsApp
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* 문의 채널 */}
           <div className="rounded-2xl border border-gray-100 bg-white p-5">

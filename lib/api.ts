@@ -69,6 +69,16 @@ export type Transfer = {
   status: string;
 };
 
+export type Interpreter = {
+  id: number;
+  patient_id: string;
+  name: string | null;
+  phone: string | null;
+  lang: string | null;
+  note: string | null;
+  created_at: string | null;
+};
+
 export type Notification = {
   id: number;
   patient_id: string;
@@ -116,6 +126,9 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ status }),
     }),
+
+  interpreters: (patientId?: string) =>
+    req<Interpreter[]>(`/interpreters${patientId ? `?patient_id=${patientId}` : ""}`),
 
   appointments: (params?: { patient_id?: string; hospital_id?: string }) => {
     const q = new URLSearchParams(

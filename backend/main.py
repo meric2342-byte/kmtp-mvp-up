@@ -156,6 +156,14 @@ class TransferCreate(BaseModel):
     pickup_scheduled: Optional[str] = None
 
 
+class InterpreterIn(BaseModel):
+    patient_id: str
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    lang: Optional[str] = None
+    note: Optional[str] = None
+
+
 # 단계별 카톡 메시지: stage -> (메시지 내용, 받을 역할 목록)
 # 각 상황마다 친근한 카톡 메시지를 자동 발송합니다.
 # 모든 단계 알림은 환자·담당 에이전트·운영관리자(admin)에게 전달한다.
@@ -443,6 +451,64 @@ def update_transfer(transfer_id: int, body: TransferUpdate):
         label = "기사 도착" if body.status == "driver_arrived" else "탑승 완료"
         _forward_to_b2b("픽업", f"{pname}님 [{kind}] {label} · {driver_line}", link="/admin/insights", patient_name=pname)
     return dict(row)
+
+
+# ------------------------------------------------------------
+# 통역사 (interpreters) — 운영자가 환자별 통역사를 배정한다(환자 1인당 1건 업서트).
+# ------------------------------------------------------------
+@app.get("/interpreters")
+def list_interpreters(patient_id: Optional[str] = None):
+    conn = get_conn()
+    if patient_id:
+        rows = _rows(conn.execute("SELECT * FROM interpreters WHERE patient_id = ? ORDER BY id DESC", (patient_id,)))
+    else:
+        rows = _rows(conn.execute("SELECT * FROM interpreters ORDER BY id DESC"))
+    conn.close()
+    return rows
+
+
+@app.post("/interpreters")
+def upsert_interpreter(body: InterpreterIn):
+    """운영자(admin)가 통역사 정보를 배정/수정한다. 배정 즉시 환자·에이전트·관리자에 안내 알림."""
+    conn = get_conn()
+    now = _now_iso()
+    row = conn.execute(
+        "SELECT id FROM interpreters WHERE patient_id = ? ORDER BY id DESC LIMIT 1", (body.patient_id,)
+    ).fetchone()
+    if row:
+        conn.execute(
+            "UPDATE interpreters SET name=?, phone=?, lang=?, note=? WHERE id=?",
+            (body.name, body.phone, body.lang, body.note, row["id"]),
+        )
+        iid = row["id"]
+    else:
+        cur = conn.execute(
+            "INSERT INTO interpreters (patient_id, name, phone, lang, note, created_at) VALUES (?,?,?,?,?,?)",
+            (body.patient_id, body.name, body.phone, body.lang, body.note, now),
+        )
+        iid = cur.lastrowid
+
+    # 배정 안내 알림(환자가 통역사와 직접 소통할 수 있도록 이름·언어·연락처 포함)
+    if body.name or body.phone:
+        lang_txt = f"({body.lang})" if body.lang else ""
+        content = (
+            f"🗣️ [통역사 배정] {body.name or '통역사'}님{lang_txt}이 배정되었습니다.\n"
+            f"• 연락처: {body.phone or '-'}"
+            + (f"\n• 비고: {body.note}" if body.note else "")
+        )
+        for role in ("patient", "agent", "admin"):
+            conn.execute(
+                "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,0,?)",
+                (body.patient_id, role, "in_app", content, now, "KMTP 운영관리자"),
+            )
+    pname = _patient_name(conn, body.patient_id)
+    conn.commit()
+    out = dict(conn.execute("SELECT * FROM interpreters WHERE id=?", (iid,)).fetchone())
+    conn.close()
+    if body.name or body.phone:
+        _forward_to_b2b("통역", f"{pname}님 통역사 배정: {body.name or '-'} · {body.lang or '-'} · {body.phone or '-'}",
+                        link="/admin/journey", patient_name=pname)
+    return out
 
 
 # ------------------------------------------------------------
