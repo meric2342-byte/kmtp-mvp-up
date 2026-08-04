@@ -232,7 +232,8 @@ export default function StepSelectHospital({
             <div>
               <p className="mb-3 text-xs font-semibold text-gray-500">진료과를 선택하세요</p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {DEPARTMENTS.map((d) => {
+                {/* 건강검진은 전용 '건강검진' 탭으로 단일화 — 부킹(시술)에서는 제외 */}
+                {DEPARTMENTS.filter((d) => d.id !== "checkup").map((d) => {
                   const has = proceduresByDept(d.id).length > 0;
                   return (
                     <button key={d.id} type="button" disabled={!has}

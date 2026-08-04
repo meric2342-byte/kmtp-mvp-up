@@ -14,6 +14,7 @@ import StepQuoteRequest from "@/components/StepQuoteRequest";
 import StepEscrow from "@/components/StepEscrow";
 import StepTrust from "@/components/StepTrust";
 import MyQuotes from "@/components/MyQuotes";
+import CheckupTab from "@/components/CheckupTab";
 import { findAccommodation, stayTotal } from "@/lib/accommodations";
 import { saveDraft, loadDraft, clearDraft, newCaseId } from "@/lib/draft";
 import { loadLastNationality, saveLastNationality } from "@/lib/profile";
@@ -24,7 +25,7 @@ type Props = {
   onLogout: () => void;
 };
 
-type Tab = "journey" | "booking" | "quotes" | "messages";
+type Tab = "journey" | "booking" | "checkup" | "quotes" | "messages";
 
 export default function PatientApp({ account, onLogout }: Props) {
   const [tab, setTab] = useState<Tab>("booking");
@@ -150,6 +151,7 @@ export default function PatientApp({ account, onLogout }: Props) {
             [
               { key: "journey", label: "내 여정" },
               { key: "booking", label: "견적·예약" },
+              { key: "checkup", label: "건강검진" },
               { key: "quotes", label: "내 견적" },
               { key: "messages", label: "💬 메시지" },
             ] as { key: Tab; label: string }[]
@@ -198,6 +200,9 @@ export default function PatientApp({ account, onLogout }: Props) {
             }}
           />
         )}
+
+        {/* 건강검진 탭 — 검진 단일 진입점(부킹과 분리) */}
+        {tab === "checkup" && <CheckupTab account={account} />}
 
         {/* 메시지 탭 */}
         {tab === "messages" && (
