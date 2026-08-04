@@ -69,11 +69,13 @@ def _patient_name(conn, patient_id: str) -> str:
     return (row["name"] if row and row["name"] else patient_id)
 
 
-def _forward_to_b2b(event_type: str, message: str, audience: str = "admin", link: str = "/admin/insights") -> None:
-    """b2b 알림함으로 이벤트 전달(관리자/에이전시). 조용히 실패."""
+def _forward_to_b2b(event_type: str, message: str, audience: str = "admin",
+                    link: str = "/admin/insights", patient_name: str = "") -> None:
+    """b2b 알림함으로 이벤트 전달(관리자 + 환자명으로 담당 에이전시 자동 라우팅). 조용히 실패."""
     try:
         data = json.dumps(
-            {"audience": audience, "event_type": event_type, "message": message, "link": link},
+            {"audience": audience, "event_type": event_type, "message": message,
+             "link": link, "patient_name": patient_name or None},
             ensure_ascii=False,
         ).encode("utf-8")
         req = urllib.request.Request(
@@ -335,7 +337,7 @@ def add_journey_event(body: JourneyEventIn):
     conn.commit()
     conn.close()
     # b2b 관리자 콘솔로 여정 이벤트 브리지(여정 시작 포함) → SSE·웹푸시
-    _forward_to_b2b("여정", f"{pname}님 여정 진행: {STAGE_LABEL.get(body.stage, body.stage)}", link="/admin/insights")
+    _forward_to_b2b("여정", f"{pname}님 여정 진행: {STAGE_LABEL.get(body.stage, body.stage)}", link="/admin/insights", patient_name=pname)
     return {"event_id": event_id, "notifications": created_notifications}
 
 
@@ -439,7 +441,7 @@ def update_transfer(transfer_id: int, body: TransferUpdate):
     # 배차/픽업/기사 이벤트를 b2b 관리자 콘솔로 브리지(기사 연락처 포함)
     if body.status in ("driver_arrived", "boarded"):
         label = "기사 도착" if body.status == "driver_arrived" else "탑승 완료"
-        _forward_to_b2b("픽업", f"{pname}님 [{kind}] {label} · {driver_line}", link="/admin/insights")
+        _forward_to_b2b("픽업", f"{pname}님 [{kind}] {label} · {driver_line}", link="/admin/insights", patient_name=pname)
     return dict(row)
 
 

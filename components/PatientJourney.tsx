@@ -48,10 +48,16 @@ export default function PatientJourney({
     const t = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       reload();
-    }, 12000);
+    }, 6000);
     const onFocus = () => reload();
+    const onVisible = () => { if (!document.hidden) reload(); };
     window.addEventListener("focus", onFocus);
-    return () => { clearInterval(t); window.removeEventListener("focus", onFocus); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account.id]);
 
