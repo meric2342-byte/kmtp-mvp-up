@@ -18,7 +18,7 @@ const STATUS_LABEL: Record<string, string> = {
   병원승인: "검진기관 승인", 확정: "확정", 견적확정: "견적 확정", 견적발송: "견적 발송",
 };
 
-export default function CheckupTab({ account }: { account: Account }) {
+export default function CheckupTab({ account, onBookOther }: { account: Account; onBookOther?: () => void }) {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [mine, setMine] = useState<MyReq[]>([]);
   const [sel, setSel] = useState<Program | null>(null);
@@ -28,6 +28,7 @@ export default function CheckupTab({ account }: { account: Account }) {
   const [allergy, setAllergy] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [done, setDone] = useState(false); // 신청 완료 → 진료과 복귀 안내
 
   const loadMine = useCallback(() => {
     fetch(`${B2B_API_BASE}/checkup-requests/by-patient/${encodeURIComponent(account.name || account.id)}`)
@@ -62,6 +63,7 @@ export default function CheckupTab({ account }: { account: Account }) {
           patient_name: account.name || account.id,
           hospital_id: sel.hospital_id,
           program: `${sel.name} · ${sel.hospital_name}`,
+          quote_amount: sel.price_krw,
           preferred_dates: preferred,
           conditions: conditions.length ? conditions : undefined,
           meds: meds || undefined,
@@ -71,6 +73,7 @@ export default function CheckupTab({ account }: { account: Account }) {
       if (!res.ok) throw new Error();
       setSel(null); setSlots([{ date: "", time: "" }, { date: "", time: "" }, { date: "", time: "" }]); setConditions([]); setMeds(""); setAllergy("");
       setMsg("검진을 신청했습니다. 운영관리자·검진센터 확인 후 알려드립니다.");
+      setDone(true);
       loadMine();
       ensurePushSubscribed(`patient:${account.id}`).catch(() => {});
     } catch { setMsg("신청에 실패했습니다."); }
@@ -86,7 +89,24 @@ export default function CheckupTab({ account }: { account: Account }) {
         <p className="mt-1.5 text-sm text-gray-500">검진센터와 프로그램을 고르고 희망 날짜·시간을 정하면 검진기관과 조율해 확정해 드립니다.</p>
       </div>
 
-      {msg && <div className="rounded-xl bg-primary-light/60 px-4 py-2.5 text-sm font-semibold text-primary-dark">{msg}</div>}
+      {done ? (
+        <div className="rounded-xl border border-primary/30 bg-primary-light/60 p-4">
+          <p className="text-sm font-bold text-primary-dark">✅ 검진을 신청했습니다.</p>
+          <p className="mt-1 text-xs text-gray-500">운영관리자·검진센터 확인 후 알려드립니다. 아래 &lsquo;내 검진 신청&rsquo;에서 진행 상태를 확인할 수 있어요.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {onBookOther && (
+              <button type="button" onClick={onBookOther} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary-dark">
+                진료과로 돌아가 다른 진료 예약하기 →
+              </button>
+            )}
+            <button type="button" onClick={() => { setDone(false); setMsg(null); }} className="rounded-lg border-2 border-gray-200 px-4 py-2 text-sm font-bold text-gray-600 hover:border-primary/40">
+              검진 추가 신청
+            </button>
+          </div>
+        </div>
+      ) : (
+        msg && <div className="rounded-xl bg-primary-light/60 px-4 py-2.5 text-sm font-semibold text-primary-dark">{msg}</div>
+      )}
 
       {/* 내 검진 현황 */}
       {mine.length > 0 && (
@@ -160,6 +180,19 @@ export default function CheckupTab({ account }: { account: Account }) {
             </div>
             <input value={meds} onChange={(e) => setMeds(e.target.value)} placeholder="복용 중인 약 (선택)" className={inp} />
             <input value={allergy} onChange={(e) => setAllergy(e.target.value)} placeholder="알레르기 (선택)" className={inp} />
+          </section>
+
+          {/* 신청 요약 — 관리자 최종 승인 검토용 금액이 함께 접수됩니다 */}
+          <section className="rounded-xl border border-primary/30 bg-primary-light/40 p-4">
+            <h3 className="mb-2 text-sm font-bold text-primary-dark">신청 내역 확인</h3>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">{sel.name} · {sel.hospital_name}</span>
+              <span className="font-black text-primary">{won(sel.price_krw)}</span>
+            </div>
+            {slots.some((s) => s.date) && (
+              <p className="mt-1.5 text-xs text-gray-500">희망 {slots.filter((s) => s.date).map((s) => (s.time ? `${s.date} ${s.time}` : s.date)).join(", ")}</p>
+            )}
+            <p className="mt-2 text-[11px] text-gray-400">※ 금액과 신청 내역은 운영관리자 최종 승인 화면에 표시됩니다. 최종 금액은 검진기관 조율 후 확정됩니다.</p>
           </section>
 
           <button type="button" onClick={submit} disabled={busy} className="rounded-xl bg-primary px-6 py-3 font-bold text-white transition-colors hover:bg-primary-dark disabled:bg-gray-300">

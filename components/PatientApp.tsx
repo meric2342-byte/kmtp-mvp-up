@@ -202,7 +202,7 @@ export default function PatientApp({ account, onLogout }: Props) {
         )}
 
         {/* 건강검진 탭 — 검진 단일 진입점(부킹과 분리) */}
-        {tab === "checkup" && <CheckupTab account={account} />}
+        {tab === "checkup" && <CheckupTab account={account} onBookOther={() => { setTab("booking"); setStep(1); }} />}
 
         {/* 메시지 탭 */}
         {tab === "messages" && (
