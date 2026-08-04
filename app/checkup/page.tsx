@@ -190,7 +190,12 @@ export default function CheckupPage() {
   // 3~4. 예약·컨펌
   const today = new Date().toISOString().slice(0, 10);
   const [dates, setDates] = useState<string[]>(["", "", ""]);
+  const [times, setTimes] = useState<string[]>(["", "", ""]);
   const chosenDates = dates.filter(Boolean);
+  // 날짜+시간 결합 슬롯(시간 미입력 시 날짜만) — 검진은 날짜와 시간을 함께 지정한다.
+  const chosenSlots = dates
+    .map((d, i) => (d ? (times[i] ? `${d} ${times[i]}` : d) : ""))
+    .filter(Boolean);
   const [status, setStatus] = useState<"none" | "pending" | "confirmed">("none");
   const [confirmedDate, setConfirmedDate] = useState<string | null>(null);
   // 실제 백엔드 승인 단계(요청/본사승인/병원승인/확정) 폴링 반영
@@ -303,6 +308,14 @@ export default function CheckupPage() {
     });
   }
 
+  function setTimeAt(i: number, val: string) {
+    setTimes((prev) => {
+      const next = [...prev];
+      next[i] = val;
+      return next;
+    });
+  }
+
   async function requestBooking() {
     // 검진 정보는 항상 b2b 운영 백엔드로 전송한다.
     try {
@@ -317,7 +330,7 @@ export default function CheckupPage() {
             allergy,
             image_link: imageLink,
             program: program?.name ?? null,
-            preferred_dates: chosenDates,
+            preferred_dates: chosenSlots,
           }),
         });
         if (res.ok) {
@@ -337,7 +350,7 @@ export default function CheckupPage() {
             allergy,
             image_link: imageLink,
             program: program?.name ?? null,
-            preferred_dates: chosenDates,
+            preferred_dates: chosenSlots,
             ref: ref || undefined,
           }),
         });
@@ -702,20 +715,29 @@ export default function CheckupPage() {
             )}
 
             <section>
-              <p className="mb-3 text-sm font-semibold text-gray-700">희망 날짜 (최대 3개, 달력에서 선택)</p>
+              <p className="mb-3 text-sm font-semibold text-gray-700">희망 날짜·시간 (최대 3개)</p>
               <div className="flex flex-col gap-2">
                 {[0, 1, 2].map((i) => (
-                  <input
-                    key={i}
-                    type="date"
-                    min={today}
-                    value={dates[i] ?? ""}
-                    onChange={(e) => setDateAt(i, e.target.value)}
-                    className={inputCls}
-                  />
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="w-10 shrink-0 text-xs text-gray-400">{i + 1}지망</span>
+                    <input
+                      type="date"
+                      min={today}
+                      value={dates[i] ?? ""}
+                      onChange={(e) => setDateAt(i, e.target.value)}
+                      className={`${inputCls} flex-1`}
+                    />
+                    <input
+                      type="time"
+                      value={times[i] ?? ""}
+                      onChange={(e) => setTimeAt(i, e.target.value)}
+                      disabled={!dates[i]}
+                      className={`${inputCls} w-28 shrink-0 ${!dates[i] ? "bg-gray-100 text-gray-400" : ""}`}
+                    />
+                  </div>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-gray-400">1지망부터 순서대로 선택하세요. 병원이 이 중 하나로 컨펌합니다.</p>
+              <p className="mt-2 text-xs text-gray-400">1지망부터 순서대로 날짜와 시간을 선택하세요. 병원이 이 중 하나로 컨펌합니다.</p>
             </section>
 
             <div className="flex items-center justify-between">

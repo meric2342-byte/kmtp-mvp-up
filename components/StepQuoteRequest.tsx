@@ -145,6 +145,24 @@ export default function StepQuoteRequest({
           items,
         }),
       });
+      // 검진(dept=checkup)은 admin '검진 통합관리'에 보이도록 checkup_request도 생성한다.
+      // 이미 고른 병원·날짜·시간을 그대로 넘겨 여정에서 다시 묻지 않게 통일.
+      const checkupBookings = bookings.filter((b) => b.deptId === "checkup");
+      for (const b of checkupBookings) {
+        const slots = (b.dateSlots || [])
+          .filter((s) => s.date)
+          .map((s) => (s.time ? `${s.date} ${s.time}` : s.date));
+        await fetch(`${B2B_API_BASE}/checkup-requests`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patient_name: patientName,
+            nationality,
+            program: `${b.procedureName} · ${hospitalName(b.hospitalId)}`,
+            preferred_dates: slots,
+          }),
+        }).catch(() => {});
+      }
     } catch {
       // 전송 실패는 무시하고 진행
     } finally {
