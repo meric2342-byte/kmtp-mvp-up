@@ -18,6 +18,7 @@ type Props = {
   onNext: () => void;
   companions: number;
   onSelectCompanions: (n: number) => void;
+  onGoCheckup?: () => void; // 진료과에서 '검진' 선택 시 건강검진 탭으로 전환
 };
 
 type FormStep = "dept" | "proc" | "hospital" | "confirm";
@@ -76,6 +77,7 @@ export default function StepSelectHospital({
   onNext,
   companions,
   onSelectCompanions,
+  onGoCheckup,
 }: Props) {
   const [formStep, setFormStep] = useState<FormStep>("dept");
   const [selDeptId, setSelDeptId] = useState<string | null>(null);
@@ -232,23 +234,28 @@ export default function StepSelectHospital({
             <div>
               <p className="mb-3 text-xs font-semibold text-gray-500">진료과를 선택하세요</p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {/* 건강검진은 전용 '건강검진' 탭으로 단일화 — 부킹(시술)에서는 제외 */}
-                {DEPARTMENTS.filter((d) => d.id !== "checkup").map((d) => {
-                  const has = proceduresByDept(d.id).length > 0;
+                {/* 검진은 진료과에 노출하되, 클릭 시 부킹에서 진행하지 않고 '건강검진' 탭으로 전환(단일화) */}
+                {DEPARTMENTS.map((d) => {
+                  const isCheckup = d.id === "checkup";
+                  const has = isCheckup || proceduresByDept(d.id).length > 0;
                   return (
                     <button key={d.id} type="button" disabled={!has}
-                      onClick={() => { setSelDeptId(d.id); setSelProc(null); setSelHospitalId(null); setQuery(""); setFormStep("proc"); }}
+                      onClick={() => {
+                        if (isCheckup) { onGoCheckup?.(); return; }
+                        setSelDeptId(d.id); setSelProc(null); setSelHospitalId(null); setQuery(""); setFormStep("proc");
+                      }}
                       className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2.5 text-left transition-all ${
                         selDeptId === d.id ? "border-primary bg-primary-light font-bold text-primary-dark"
                         : has ? "border-gray-200 bg-white text-gray-700 hover:border-primary/40"
                         : "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"
                       }`}>
                       <span className="text-base">{d.icon}</span>
-                      <span className="text-xs leading-tight">{d.name}</span>
+                      <span className="text-xs leading-tight">{d.name}{isCheckup ? " →" : ""}</span>
                     </button>
                   );
                 })}
               </div>
+              <p className="mt-2 text-[11px] text-gray-400">※ 건강검진은 선택 시 전용 &lsquo;건강검진&rsquo; 탭에서 한 번에 진행됩니다.</p>
             </div>
           )}
 

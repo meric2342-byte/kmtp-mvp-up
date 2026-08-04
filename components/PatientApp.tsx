@@ -226,6 +226,7 @@ export default function PatientApp({ account, onLogout }: Props) {
                 onNext={() => setStep(2)}
                 companions={companions}
                 onSelectCompanions={setCompanions}
+                onGoCheckup={() => setTab("checkup")}
               />
             )}
 
