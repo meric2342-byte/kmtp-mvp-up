@@ -472,39 +472,41 @@ def upsert_interpreter(body: InterpreterIn):
     """운영자(admin)가 통역사 정보를 배정/수정한다. 배정 즉시 환자·에이전트·관리자에 안내 알림."""
     conn = get_conn()
     now = _now_iso()
-    row = conn.execute(
-        "SELECT id FROM interpreters WHERE patient_id = ? ORDER BY id DESC LIMIT 1", (body.patient_id,)
-    ).fetchone()
-    if row:
-        conn.execute(
-            "UPDATE interpreters SET name=?, phone=?, lang=?, note=? WHERE id=?",
-            (body.name, body.phone, body.lang, body.note, row["id"]),
-        )
-        iid = row["id"]
-    else:
-        cur = conn.execute(
-            "INSERT INTO interpreters (patient_id, name, phone, lang, note, created_at) VALUES (?,?,?,?,?,?)",
-            (body.patient_id, body.name, body.phone, body.lang, body.note, now),
-        )
-        iid = cur.lastrowid
-
-    # 배정 안내 알림(환자가 통역사와 직접 소통할 수 있도록 이름·언어·연락처 포함)
-    if body.name or body.phone:
-        lang_txt = f"({body.lang})" if body.lang else ""
-        content = (
-            f"🗣️ [통역사 배정] {body.name or '통역사'}님{lang_txt}이 배정되었습니다.\n"
-            f"• 연락처: {body.phone or '-'}"
-            + (f"\n• 비고: {body.note}" if body.note else "")
-        )
-        for role in ("patient", "agent", "admin"):
+    try:
+        row = conn.execute(
+            "SELECT id FROM interpreters WHERE patient_id = ? ORDER BY id DESC LIMIT 1", (body.patient_id,)
+        ).fetchone()
+        if row:
             conn.execute(
-                "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,0,?)",
-                (body.patient_id, role, "in_app", content, now, "KMTP 운영관리자"),
+                "UPDATE interpreters SET name=?, phone=?, lang=?, note=? WHERE id=?",
+                (body.name, body.phone, body.lang, body.note, row["id"]),
             )
-    pname = _patient_name(conn, body.patient_id)
-    conn.commit()
-    out = dict(conn.execute("SELECT * FROM interpreters WHERE id=?", (iid,)).fetchone())
-    conn.close()
+            iid = row["id"]
+        else:
+            cur = conn.execute(
+                "INSERT INTO interpreters (patient_id, name, phone, lang, note, created_at) VALUES (?,?,?,?,?,?)",
+                (body.patient_id, body.name, body.phone, body.lang, body.note, now),
+            )
+            iid = cur.lastrowid
+
+        # 배정 안내 알림(환자가 통역사와 직접 소통할 수 있도록 이름·언어·연락처 포함)
+        if body.name or body.phone:
+            lang_txt = f"({body.lang})" if body.lang else ""
+            content = (
+                f"🗣️ [통역사 배정] {body.name or '통역사'}님{lang_txt}이 배정되었습니다.\n"
+                f"• 연락처: {body.phone or '-'}"
+                + (f"\n• 비고: {body.note}" if body.note else "")
+            )
+            for role in ("patient", "agent", "admin"):
+                conn.execute(
+                    "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,0,?)",
+                    (body.patient_id, role, "in_app", content, now, "KMTP 운영관리자"),
+                )
+        pname = _patient_name(conn, body.patient_id)
+        conn.commit()
+        out = dict(conn.execute("SELECT * FROM interpreters WHERE id=?", (iid,)).fetchone())
+    finally:
+        conn.close()
     if body.name or body.phone:
         _forward_to_b2b("통역", f"{pname}님 통역사 배정: {body.name or '-'} · {body.lang or '-'} · {body.phone or '-'}",
                         link="/admin/journey", patient_name=pname)

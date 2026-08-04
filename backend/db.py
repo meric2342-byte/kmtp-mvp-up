@@ -30,9 +30,15 @@ STAGES = [
 
 
 def get_conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+    # timeout: 쓰기 락 대기(폴링 읽기와 쓰기 동시성). WAL: 읽기가 쓰기를 막지 않도록.
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 8000")
+    try:
+        conn.execute("PRAGMA journal_mode = WAL")
+    except sqlite3.OperationalError:
+        pass  # 일부 파일시스템에서 WAL 불가 시 무시
     return conn
 
 
