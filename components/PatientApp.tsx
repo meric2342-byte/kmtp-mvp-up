@@ -3,6 +3,7 @@
 // 환자(patient) 영역 — 6단계: 시술·일정 → 숙소 → 부가서비스 → 견적요청 → 에스크로 → 신뢰
 import { useState, useEffect } from "react";
 import type { Account } from "@/lib/auth";
+import { api } from "@/lib/api";
 import TopBar from "@/components/TopBar";
 import PatientJourney from "@/components/PatientJourney";
 import KakaoChat from "@/components/KakaoChat";
@@ -284,6 +285,8 @@ export default function PatientApp({ account, onLogout }: Props) {
                 accommodationId={accommodationId}
                 onPrev={() => setStep(4)}
                 onNext={() => {
+                  // 에스크로 예치 확정 → 환자·에이전트·관리자에 실시간 알림(항목4)
+                  api.escrowConfirm(account.id, grandTotal).catch(() => {});
                   setStep(6);
                   setTab("journey");
                   setFlowPending(true);

@@ -130,6 +130,12 @@ export const api = {
   interpreters: (patientId?: string) =>
     req<Interpreter[]>(`/interpreters${patientId ? `?patient_id=${patientId}` : ""}`),
 
+  escrowConfirm: (patientId: string, amount?: number) =>
+    req<{ ok: boolean }>("/escrow/confirm", {
+      method: "POST",
+      body: JSON.stringify({ patient_id: patientId, amount }),
+    }),
+
   appointments: (params?: { patient_id?: string; hospital_id?: string }) => {
     const q = new URLSearchParams(
       Object.entries(params ?? {}).filter(([, v]) => v) as [string, string][],

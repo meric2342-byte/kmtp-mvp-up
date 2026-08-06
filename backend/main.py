@@ -164,6 +164,11 @@ class InterpreterIn(BaseModel):
     note: Optional[str] = None
 
 
+class EscrowConfirmIn(BaseModel):
+    patient_id: str
+    amount: Optional[float] = None
+
+
 # 단계별 카톡 메시지: stage -> (메시지 내용, 받을 역할 목록)
 # 각 상황마다 친근한 카톡 메시지를 자동 발송합니다.
 # 모든 단계 알림은 환자·담당 에이전트·운영관리자(admin)에게 전달한다.
@@ -511,6 +516,31 @@ def upsert_interpreter(body: InterpreterIn):
         _forward_to_b2b("통역", f"{pname}님 통역사 배정: {body.name or '-'} · {body.lang or '-'} · {body.phone or '-'}",
                         link="/admin/journey", patient_name=pname)
     return out
+
+
+# ------------------------------------------------------------
+# 에스크로 (escrow) — 예치 확정 시 환자·에이전트·관리자에 실시간 알림 + b2b 브리지
+# ------------------------------------------------------------
+@app.post("/escrow/confirm")
+def escrow_confirm(body: EscrowConfirmIn):
+    """환자가 에스크로 예치를 완료하면 확정 알림을 생성한다(항목4: 에스크로 확정 알람)."""
+    conn = get_conn()
+    now = _now_iso()
+    try:
+        amt = f" (₩{int(body.amount):,})" if body.amount else ""
+        content = f"🔒 [에스크로 확정] 결제금{amt}이 KMTP 에스크로에 안전하게 예치되었습니다. 여정을 시작합니다."
+        for role in ("patient", "agent", "admin"):
+            conn.execute(
+                "INSERT INTO notifications (patient_id, recipient_role, channel, content, sent_at, read, sender) VALUES (?,?,?,?,?,0,?)",
+                (body.patient_id, role, "in_app", content, now, "KMTP 운영관리자"),
+            )
+        pname = _patient_name(conn, body.patient_id)
+        conn.commit()
+    finally:
+        conn.close()
+    _forward_to_b2b("에스크로", f"{pname}님 에스크로 예치 확정{(' ₩'+format(int(body.amount),',')) if body.amount else ''}",
+                    link="/admin/insights", patient_name=pname)
+    return {"ok": True}
 
 
 # ------------------------------------------------------------
