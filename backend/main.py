@@ -169,6 +169,12 @@ class EscrowConfirmIn(BaseModel):
     amount: Optional[float] = None
 
 
+class PatientRegIn(BaseModel):
+    patient_id: str
+    reg_no: Optional[str] = None
+    hospital: Optional[str] = None
+
+
 # 단계별 카톡 메시지: stage -> (메시지 내용, 받을 역할 목록)
 # 각 상황마다 친근한 카톡 메시지를 자동 발송합니다.
 # 모든 단계 알림은 환자·담당 에이전트·운영관리자(admin)에게 전달한다.
@@ -515,6 +521,47 @@ def upsert_interpreter(body: InterpreterIn):
     if body.name or body.phone:
         _forward_to_b2b("통역", f"{pname}님 통역사 배정: {body.name or '-'} · {body.lang or '-'} · {body.phone or '-'}",
                         link="/admin/journey", patient_name=pname)
+    return out
+
+
+# ------------------------------------------------------------
+# 환자 병원 등록번호 (patient_registration) — 병원이 발급한 환자별 등록번호를
+# 운영자가 저장/조회한다(환자 1인당 1건 업서트). 병원 도착 전 환자에게 WhatsApp으로 전달.
+# ------------------------------------------------------------
+@app.get("/patient-registration")
+def get_patient_registration(patient_id: Optional[str] = None):
+    conn = get_conn()
+    if patient_id:
+        rows = _rows(conn.execute("SELECT * FROM patient_registration WHERE patient_id = ? ORDER BY id DESC", (patient_id,)))
+    else:
+        rows = _rows(conn.execute("SELECT * FROM patient_registration ORDER BY id DESC"))
+    conn.close()
+    return rows
+
+
+@app.post("/patient-registration")
+def upsert_patient_registration(body: PatientRegIn):
+    """운영자가 병원 발급 환자 등록번호를 저장/수정(환자별 1건)."""
+    conn = get_conn()
+    now = _now_iso()
+    try:
+        row = conn.execute(
+            "SELECT id FROM patient_registration WHERE patient_id = ? ORDER BY id DESC LIMIT 1", (body.patient_id,)
+        ).fetchone()
+        if row:
+            conn.execute("UPDATE patient_registration SET reg_no=?, hospital=? WHERE id=?",
+                         (body.reg_no, body.hospital, row["id"]))
+            rid = row["id"]
+        else:
+            cur = conn.execute(
+                "INSERT INTO patient_registration (patient_id, reg_no, hospital, created_at) VALUES (?,?,?,?)",
+                (body.patient_id, body.reg_no, body.hospital, now),
+            )
+            rid = cur.lastrowid
+        conn.commit()
+        out = dict(conn.execute("SELECT * FROM patient_registration WHERE id=?", (rid,)).fetchone())
+    finally:
+        conn.close()
     return out
 
 

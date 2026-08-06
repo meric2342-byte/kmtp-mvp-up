@@ -144,6 +144,14 @@ CREATE TABLE IF NOT EXISTS interpreters (
     note TEXT,                     -- 비고(가능 시간 등)
     created_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS patient_registration (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id TEXT REFERENCES patients(id),  -- 환자 1인당 1건(업서트)
+    reg_no TEXT,                   -- 병원이 발급한 환자별 등록번호(개인마다 다름)
+    hospital TEXT,                 -- 발급 병원명(선택)
+    created_at TEXT
+);
 """
 
 
