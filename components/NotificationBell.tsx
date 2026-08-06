@@ -2,7 +2,7 @@
 
 // 인앱 알림 벨 — 역할별 알림을 주기적으로 가져와 표시 (배지 + 드롭다운)
 // 실제 카톡/문자가 아니라 '앱 안에서 뜨는 알림' 시뮬레이션
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Role } from "@/lib/auth";
 import { api, type Notification } from "@/lib/api";
 
@@ -11,30 +11,56 @@ type Props = {
   patientId?: string; // patient는 본인 알림만
 };
 
+// 새 알림 도착 시 짧은 비프음(브라우저 자동재생 정책상 사용자 상호작용 이후 확실히 울림).
+function beep() {
+  try {
+    const AC = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+    const ctx = new AC();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine"; o.frequency.value = 880; g.gain.value = 0.0001;
+    o.connect(g); g.connect(ctx.destination);
+    const t = ctx.currentTime;
+    g.gain.exponentialRampToValueAtTime(0.2, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+    o.start(t); o.stop(t + 0.36);
+    o.onended = () => ctx.close().catch(() => {});
+  } catch { /* noop */ }
+}
+
 export default function NotificationBell({ role, patientId }: Props) {
   const [items, setItems] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const seenMaxId = useRef<number>(-1);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
-      const params: { recipient_role: Role; patient_id?: string } = {
-        recipient_role: role,
-      };
+      const params: { recipient_role: Role; patient_id?: string } = { recipient_role: role };
       if (patientId) params.patient_id = patientId;
-      setItems(await api.notifications(params));
+      const data = await api.notifications(params);
+      setItems(data);
+      // 신규 알림 감지 → 소리로 '울림'(최초 로드는 기준값만 설정)
+      const maxId = data.reduce((m, n) => (n.id > m ? n.id : m), -1);
+      if (seenMaxId.current < 0) {
+        seenMaxId.current = maxId;
+      } else if (maxId > seenMaxId.current) {
+        const hasUnread = data.some((n) => n.id > seenMaxId.current && !n.read);
+        seenMaxId.current = maxId;
+        if (hasUnread) beep();
+      }
     } catch {
       // 백엔드 미연결 시 조용히 무시 (다른 곳에서 안내)
     }
-  };
+  }, [role, patientId]);
 
-  // 최초 + 5초마다 폴링
+  // 최초 + 5초마다 폴링(숨겨진 탭에서도 소리 알림 유지)
   useEffect(() => {
+    seenMaxId.current = -1;
     load();
     const t = setInterval(load, 5000);
     return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role, patientId]);
+  }, [load]);
 
   // 바깥 클릭 시 닫기
   useEffect(() => {
