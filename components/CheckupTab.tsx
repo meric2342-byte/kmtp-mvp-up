@@ -8,7 +8,7 @@ import { ensurePushSubscribed } from "@/lib/push";
 import { loadProfile } from "@/lib/profile";
 
 interface Program { id: number; hospital_id: number; hospital_name: string; name: string; price_krw: number; duration?: string | null; includes?: string | null; }
-interface MyReq { id: number; program: string | null; status: string; confirmed_date: string | null; preferred_dates: string | null; }
+interface MyReq { id: number; program: string | null; status: string; confirmed_date: string | null; confirmed_time: string | null; preferred_dates: string | null; }
 
 const CONDITIONS = ["고혈압", "당뇨", "심장질환", "신장질환", "갑상선", "없음"];
 const won = (n: number) => "₩" + (n ?? 0).toLocaleString("ko-KR");
@@ -28,6 +28,8 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
   const [conditions, setConditions] = useState<string[]>([]);
   const [meds, setMeds] = useState("");
   const [allergy, setAllergy] = useState("");
+  const [arrival, setArrival] = useState("");    // 입국일 — 검진센터 일정 조율 참고(항목28)
+  const [departure, setDeparture] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [done, setDone] = useState(false); // 신청 완료 → 진료과 복귀 안내
@@ -77,6 +79,8 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
           program: `${sel.name} · ${sel.hospital_name}`,
           quote_amount: sel.price_krw,
           contact: loadProfile(account.id).whatsapp || undefined,
+          arrival_date: arrival || undefined,
+          departure_date: departure || undefined,
           preferred_dates: preferred,
           conditions: conditions.length ? conditions : undefined,
           meds: meds || undefined,
@@ -84,7 +88,7 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
         }),
       });
       if (!res.ok) throw new Error();
-      setSel(null); setSlots(["", "", ""]); setConditions([]); setMeds(""); setAllergy("");
+      setSel(null); setSlots(["", "", ""]); setConditions([]); setMeds(""); setAllergy(""); setArrival(""); setDeparture("");
       setMsg("검진을 신청했습니다. 운영관리자·검진센터 확인 후 알려드립니다.");
       setDone(true);
       loadMine();
@@ -134,7 +138,7 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-bold text-gray-800">{r.program || "검진"}</p>
-                    <p className="text-xs text-gray-400">희망 {r.preferred_dates || "-"}{r.confirmed_date ? ` · 확정 ${r.confirmed_date}` : ""}</p>
+                    <p className="text-xs text-gray-400">희망 {r.preferred_dates || "-"}{r.confirmed_date ? ` · 확정 ${r.confirmed_date}${r.confirmed_time ? ` ${r.confirmed_time}` : ""}` : ""}</p>
                   </div>
                   <span className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark">{STATUS_LABEL[r.status] ?? r.status}</span>
                 </div>
@@ -201,6 +205,17 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
               ))}
             </div>
             <p className="mt-2 text-[11px] text-gray-400">시간은 검진센터 일정에 맞춰 예약을 잡아 안내해 드립니다.</p>
+          </section>
+
+          {/* 입국/출국일 — 검진센터가 이 기간 내에서 가능 일정·시간을 잡아 통보합니다(항목28) */}
+          <section>
+            <h3 className="mb-2 text-sm font-bold text-gray-700">입국일 · 출국일</h3>
+            <div className="flex items-center gap-2">
+              <input type="date" value={arrival} onChange={(e) => setArrival(e.target.value)} className={`${inp} flex-1`} placeholder="입국일" />
+              <span className="text-gray-400">~</span>
+              <input type="date" value={departure} min={arrival || undefined} onChange={(e) => setDeparture(e.target.value)} className={`${inp} flex-1`} placeholder="출국일" />
+            </div>
+            <p className="mt-2 text-[11px] text-gray-400">검진센터가 입국~출국일 사이에서 가능한 일정·시간을 잡아 안내해 드립니다.</p>
           </section>
 
           {/* 사전문진 (선택) */}
