@@ -10,6 +10,8 @@ import { useAsync } from "@/lib/useAsync";
 import JourneyTimeline from "@/components/JourneyTimeline";
 import BackendNotice from "@/components/BackendNotice";
 import { COORDINATOR } from "@/lib/services";
+import { loadDraft } from "@/lib/draft";
+import type { TreatmentBooking } from "@/lib/booking";
 
 const stageLabel = (key: string | null) =>
   STAGES.find((s) => s.key === key)?.label ?? "";
@@ -26,12 +28,15 @@ type Props = {
   onContinueFlow?: () => void;
   // 여정이 완료되면 신뢰 화면으로 이동
   onGoTrust?: () => void;
+  // 재진 일정이 잡히면 숙박·서비스·일정을 다시 예약(항목12)
+  onRebook?: () => void;
 };
 
 export default function PatientJourney({
   account,
   onContinueFlow,
   onGoTrust,
+  onRebook,
 }: Props) {
   const journey = useAsync(() => api.journey(account.id), [account.id]);
   const transfers = useAsync(() => api.transfers(account.id), [account.id]);
@@ -41,6 +46,9 @@ export default function PatientJourney({
     [account.id],
   );
   const [posting, setPosting] = useState(false);
+  // 에스크로 완료 직후엔 백엔드 예약(appt)이 아직 없을 수 있어, 내가 예약한 시술(draft)을 '예정'으로 표시(항목9)
+  const [draftBookings, setDraftBookings] = useState<TreatmentBooking[]>([]);
+  useEffect(() => { const d = loadDraft(account.id); setDraftBookings(d?.bookings ?? []); }, [account.id]);
 
   // 실시간 반영: 운영자(admin)가 기록한 여정 이벤트·기사정보가 자동으로 타임라인에 진행되도록
   // 12초 폴링 + 탭 복귀 시 즉시 재조회. (기존엔 본인이 버튼 누를 때만 갱신돼 '정체'처럼 보임)
@@ -188,6 +196,20 @@ export default function PatientJourney({
             </div>
           )}
 
+          {/* 재진 일정 안내 — 재진 단계에 도달하면 숙박·서비스·일정 재예약 버튼 노출(항목12) */}
+          {(journey.data?.done_stages.includes("follow_up") || journey.data?.current_stage === "follow_up") && (
+            <div className="rounded-2xl border border-primary/30 bg-primary-light/40 p-5">
+              <h3 className="text-sm font-bold text-primary-dark">🔁 재진 일정</h3>
+              <p className="mt-1 text-xs text-gray-600">재진 일정이 잡혔습니다. 재진에 맞춰 숙박·서비스·일정을 다시 예약해 주세요.</p>
+              {onRebook && (
+                <button type="button" onClick={onRebook}
+                  className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-primary-dark">
+                  재진 숙박·서비스 예약하기 →
+                </button>
+              )}
+            </div>
+          )}
+
           {/* 일정 + 픽업 연락처 요약 */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {/* 병원 일정 */}
@@ -197,6 +219,18 @@ export default function PatientJourney({
                 <p className="mt-2 text-sm text-gray-600">
                   📅 {appt.scheduled_at.replace("T", " ").slice(0, 16)}
                 </p>
+              ) : draftBookings.length > 0 ? (
+                <div className="mt-2 flex flex-col gap-1.5">
+                  {draftBookings.map((b) => (
+                    <div key={b.id} className="text-sm text-gray-600">
+                      🏥 {b.procedureName}
+                      {b.dateSlots?.[0]?.date && (
+                        <span className="text-gray-500"> · {b.dateSlots[0].date}{b.dateSlots[0].time ? ` ${b.dateSlots[0].time}` : ""} 예정</span>
+                      )}
+                    </div>
+                  ))}
+                  <span className="mt-0.5 text-[11px] text-primary-dark">확정 일정은 병원 배정 후 안내됩니다.</span>
+                </div>
               ) : (
                 <p className="mt-2 text-sm text-gray-400">예약 정보 없음</p>
               )}

@@ -188,6 +188,11 @@ export default function PatientApp({ account, onLogout }: Props) {
               setTab("booking");
               setStep(6);
             }}
+            onRebook={() => {
+              // 재진: 숙박·서비스부터 다시 예약(항목12)
+              setTab("booking");
+              setStep(2);
+            }}
           />
         )}
 
