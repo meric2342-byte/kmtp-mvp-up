@@ -744,24 +744,25 @@ def auth_register_patient(body: PatientRegisterIn):
     if not lid or len(body.password) < 4:
         raise HTTPException(400, "아이디와 4자 이상 비밀번호가 필요합니다")
     conn = get_conn()
-    if conn.execute("SELECT 1 FROM accounts WHERE login_id = ?", (lid,)).fetchone():
+    try:
+        if conn.execute("SELECT 1 FROM accounts WHERE login_id = ?", (lid,)).fetchone():
+            raise HTTPException(409, "이미 사용 중인 아이디입니다")
+        pid = _next_id(conn, "P", "patients")
+        name = body.name or f"{lid} 님"
+        conn.execute(
+            "INSERT INTO patients (id, name, nationality, department, agent_id, hospital_id) VALUES (?,?,?,?,?,?)",
+            (pid, name, body.nationality, body.department, None, None),
+        )
+        sub = " · ".join([x for x in [body.nationality, body.department] if x]) or "신규 환자"
+        conn.execute(
+            "INSERT INTO accounts (login_id, password, role, name, sub, ref_id, created_at) VALUES (?,?,?,?,?,?,?)",
+            (lid, body.password, "patient", name, sub, pid, _now_iso()),
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM accounts WHERE login_id = ?", (lid,)).fetchone()
+        return _account_dict(row)
+    finally:
         conn.close()
-        raise HTTPException(409, "이미 사용 중인 아이디입니다")
-    pid = _next_id(conn, "P", "patients")
-    name = body.name or f"{lid} 님"
-    conn.execute(
-        "INSERT INTO patients (id, name, nationality, department, agent_id, hospital_id) VALUES (?,?,?,?,?,?)",
-        (pid, name, body.nationality, body.department, None, None),
-    )
-    sub = " · ".join([x for x in [body.nationality, body.department] if x]) or "신규 환자"
-    conn.execute(
-        "INSERT INTO accounts (login_id, password, role, name, sub, ref_id, created_at) VALUES (?,?,?,?,?,?,?)",
-        (lid, body.password, "patient", name, sub, pid, _now_iso()),
-    )
-    conn.commit()
-    row = conn.execute("SELECT * FROM accounts WHERE login_id = ?", (lid,)).fetchone()
-    conn.close()
-    return _account_dict(row)
 
 
 @app.post("/auth/accounts")

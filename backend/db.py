@@ -30,8 +30,10 @@ STAGES = [
 
 
 def get_conn() -> sqlite3.Connection:
-    # timeout: 쓰기 락 대기(폴링 읽기와 쓰기 동시성). WAL: 읽기가 쓰기를 막지 않도록.
-    conn = sqlite3.connect(DB_PATH, timeout=30)
+    # isolation_level=None(자동커밋): 각 문장이 즉시 커밋돼 '장기 쓰기 트랜잭션' 자체가 없다.
+    #   → 연결이 실수로 안 닫혀도 쓰기 락이 남지 않아 'database is locked' 누수를 근본 차단.
+    # WAL: 폴링 읽기가 쓰기를 막지 않도록. busy_timeout: 순간 경합 시 대기.
+    conn = sqlite3.connect(DB_PATH, timeout=30, isolation_level=None)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA busy_timeout = 8000")
