@@ -147,7 +147,8 @@ export default function StepTrust({
         </div>
       </section>
 
-      {/* 회복 경과 추적 */}
+      {/* 회복 경과 추적 — 추후 업데이트 시 공개(요청으로 임시 숨김) */}
+      {false && (
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-bold text-gray-700">회복 경과 추적</h3>
@@ -183,6 +184,7 @@ export default function StepTrust({
           시술 후 1주 / 1개월 / 3개월 만족도·합병증·재방문을 추적합니다.
         </p>
       </section>
+      )}
 
       {/* 완료 메시지 */}
       <div className="rounded-2xl bg-primary-dark px-6 py-6 text-center text-white">

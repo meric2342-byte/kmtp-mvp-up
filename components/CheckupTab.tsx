@@ -23,13 +23,15 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
   const [programs, setPrograms] = useState<Program[]>([]);
   const [mine, setMine] = useState<MyReq[]>([]);
   const [sel, setSel] = useState<Program | null>(null);
-  const [slots, setSlots] = useState<{ date: string; time: string }[]>([{ date: "", time: "" }, { date: "", time: "" }, { date: "", time: "" }]);
+  // 검진은 '날짜만' 희망으로 접수 — 시간은 검진센터 일정에 맞춰 확정 후 통보한다.
+  const [slots, setSlots] = useState<string[]>(["", "", ""]);
   const [conditions, setConditions] = useState<string[]>([]);
   const [meds, setMeds] = useState("");
   const [allergy, setAllergy] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [done, setDone] = useState(false); // 신청 완료 → 진료과 복귀 안내
+  const [kitReceived, setKitReceived] = useState<Record<number, boolean>>({}); // 대장내시경 키트 수령 확인(로컬)
 
   const loadMine = useCallback(() => {
     fetch(`${B2B_API_BASE}/checkup-requests/by-patient/${encodeURIComponent(account.name || account.id)}`)
@@ -45,17 +47,26 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
     return () => clearInterval(t);
   }, [loadMine]);
 
+  // 대장내시경 키트 수령 상태를 localStorage에서 복원
+  useEffect(() => {
+    const next: Record<number, boolean> = {};
+    for (const r of mine) {
+      try { if (localStorage.getItem(`kmtp_kit_received:${account.id}:${r.id}`) === "1") next[r.id] = true; } catch {}
+    }
+    setKitReceived(next);
+  }, [mine, account.id]);
+
   function toggleCond(c: string) {
     setConditions((prev) => c === "없음" ? (prev.includes("없음") ? [] : ["없음"]) : (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev.filter((x) => x !== "없음"), c]));
   }
-  function setSlot(i: number, k: "date" | "time", v: string) {
-    setSlots((prev) => prev.map((s, j) => (j === i ? { ...s, [k]: v } : s)));
+  function setSlot(i: number, v: string) {
+    setSlots((prev) => prev.map((s, j) => (j === i ? v : s)));
   }
 
   async function submit() {
     if (!sel) { setMsg("검진센터·프로그램을 선택하세요."); return; }
-    const preferred = slots.filter((s) => s.date).map((s) => (s.time ? `${s.date} ${s.time}` : s.date));
-    if (preferred.length === 0) { setMsg("희망 날짜·시간을 1개 이상 선택하세요."); return; }
+    const preferred = slots.filter(Boolean);
+    if (preferred.length === 0) { setMsg("희망 날짜를 1개 이상 선택하세요."); return; }
     setBusy(true); setMsg(null);
     try {
       const res = await fetch(`${B2B_API_BASE}/checkup-requests`, {
@@ -73,7 +84,7 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
         }),
       });
       if (!res.ok) throw new Error();
-      setSel(null); setSlots([{ date: "", time: "" }, { date: "", time: "" }, { date: "", time: "" }]); setConditions([]); setMeds(""); setAllergy("");
+      setSel(null); setSlots(["", "", ""]); setConditions([]); setMeds(""); setAllergy("");
       setMsg("검진을 신청했습니다. 운영관리자·검진센터 확인 후 알려드립니다.");
       setDone(true);
       loadMine();
@@ -114,15 +125,36 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
       {mine.length > 0 && (
         <section className="flex flex-col gap-2">
           <h3 className="text-sm font-bold text-gray-700">내 검진 신청</h3>
-          {mine.map((r) => (
-            <div key={r.id} className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-3">
-              <div>
-                <p className="text-sm font-bold text-gray-800">{r.program || "검진"}</p>
-                <p className="text-xs text-gray-400">희망 {r.preferred_dates || "-"}{r.confirmed_date ? ` · 확정 ${r.confirmed_date}` : ""}</p>
+          {mine.map((r) => {
+            const isColon = /대장|내시경/.test(r.program || "");
+            const kitKey = `kmtp_kit_received:${account.id}:${r.id}`;
+            const kitDone = kitReceived[r.id];
+            return (
+              <div key={r.id} className="rounded-xl border border-gray-100 bg-white px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-gray-800">{r.program || "검진"}</p>
+                    <p className="text-xs text-gray-400">희망 {r.preferred_dates || "-"}{r.confirmed_date ? ` · 확정 ${r.confirmed_date}` : ""}</p>
+                  </div>
+                  <span className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark">{STATUS_LABEL[r.status] ?? r.status}</span>
+                </div>
+                {/* 대장내시경 프로그램: 사전 장정결 키트 수령 확인 버튼 */}
+                {isColon && (
+                  <div className="mt-2 border-t border-gray-100 pt-2">
+                    {kitDone ? (
+                      <span className="text-xs font-bold text-primary-dark">✅ 건강검진 패키지(대장내시경 키트) 수령 확인됨</span>
+                    ) : (
+                      <button type="button"
+                        onClick={() => { try { localStorage.setItem(kitKey, "1"); } catch {} setKitReceived((p) => ({ ...p, [r.id]: true })); }}
+                        className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white hover:bg-primary-dark">
+                        📦 건강검진 패키지(대장내시경 키트) 수령 확인
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
-              <span className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark">{STATUS_LABEL[r.status] ?? r.status}</span>
-            </div>
-          ))}
+            );
+          })}
         </section>
       )}
 
@@ -157,18 +189,18 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
 
       {sel && (
         <>
-          {/* 희망 날짜·시간 */}
+          {/* 희망 날짜 (시간은 검진센터 일정에 맞춰 확정 후 통보) */}
           <section>
-            <h3 className="mb-2 text-sm font-bold text-gray-700">희망 날짜·시간 (최대 3개)</h3>
+            <h3 className="mb-2 text-sm font-bold text-gray-700">희망 날짜 (최대 3개)</h3>
             <div className="flex flex-col gap-2">
               {slots.map((s, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <span className="w-10 shrink-0 text-xs text-gray-400">{i + 1}지망</span>
-                  <input type="date" min={today()} value={s.date} onChange={(e) => setSlot(i, "date", e.target.value)} className={`${inp} flex-1`} />
-                  <input type="time" value={s.time} disabled={!s.date} onChange={(e) => setSlot(i, "time", e.target.value)} className={`${inp} w-28 shrink-0 ${!s.date ? "bg-gray-100 text-gray-400" : ""}`} />
+                  <input type="date" min={today()} value={s} onChange={(e) => setSlot(i, e.target.value)} className={`${inp} flex-1`} />
                 </div>
               ))}
             </div>
+            <p className="mt-2 text-[11px] text-gray-400">시간은 검진센터 일정에 맞춰 예약을 잡아 안내해 드립니다.</p>
           </section>
 
           {/* 사전문진 (선택) */}
@@ -191,8 +223,8 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
               <span className="text-gray-600">{sel.name} · {sel.hospital_name}</span>
               <span className="font-black text-primary">{won(sel.price_krw)}</span>
             </div>
-            {slots.some((s) => s.date) && (
-              <p className="mt-1.5 text-xs text-gray-500">희망 {slots.filter((s) => s.date).map((s) => (s.time ? `${s.date} ${s.time}` : s.date)).join(", ")}</p>
+            {slots.some(Boolean) && (
+              <p className="mt-1.5 text-xs text-gray-500">희망 {slots.filter(Boolean).join(", ")}</p>
             )}
             <p className="mt-2 text-[11px] text-gray-400">※ 금액과 신청 내역은 운영관리자 최종 승인 화면에 표시됩니다. 최종 금액은 검진기관 조율 후 확정됩니다.</p>
           </section>
