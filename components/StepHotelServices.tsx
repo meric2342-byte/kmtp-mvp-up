@@ -316,7 +316,7 @@ export default function StepHotelServices({
                     className={inp}
                   />
                   <input
-                    type="time"
+                    type="time" step={300}
                     value={form.time}
                     onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
                     className={inp}
@@ -362,7 +362,7 @@ export default function StepHotelServices({
                     className={inp}
                   />
                   <input
-                    type="time"
+                    type="time" step={300}
                     value={form.time}
                     onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
                     className={inp}
@@ -429,7 +429,7 @@ export default function StepHotelServices({
                       className={inp}
                     />
                     <input
-                      type="time"
+                      type="time" step={300}
                       value={form.time}
                       onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
                       className={inp}
@@ -493,7 +493,7 @@ export default function StepHotelServices({
                   <div>
                     <p className="mb-1 text-xs font-semibold text-gray-600">시작 시간</p>
                     <input
-                      type="time"
+                      type="time" step={300}
                       value={form.startTime}
                       onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
                       className={inp}
@@ -502,7 +502,7 @@ export default function StepHotelServices({
                   <div>
                     <p className="mb-1 text-xs font-semibold text-gray-600">종료 시간</p>
                     <input
-                      type="time"
+                      type="time" step={300}
                       value={form.endTime}
                       onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
                       className={inp}

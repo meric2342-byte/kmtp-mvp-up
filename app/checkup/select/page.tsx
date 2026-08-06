@@ -170,7 +170,7 @@ export default function CheckupSelectPage() {
                 <p className="mb-2 text-sm font-bold text-primary-dark">가능한 날짜·시간 제안</p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <input type="date" value={date} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDate(e.target.value)} className={inputCls} />
-                  <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={inputCls} />
+                  <input type="time" step={300} value={time} onChange={(e) => setTime(e.target.value)} className={inputCls} />
                 </div>
                 <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="추가 가능 시간·요청 (선택)" className={`${inputCls} mt-2`} />
                 <button type="button" onClick={choose} disabled={busy} className="mt-3 w-full rounded-xl bg-primary px-6 py-3 font-bold text-white hover:bg-primary-dark disabled:bg-gray-300">

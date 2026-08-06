@@ -728,7 +728,7 @@ export default function CheckupPage() {
                       className={`${inputCls} flex-1`}
                     />
                     <input
-                      type="time"
+                      type="time" step={300}
                       value={times[i] ?? ""}
                       onChange={(e) => setTimeAt(i, e.target.value)}
                       disabled={!dates[i]}

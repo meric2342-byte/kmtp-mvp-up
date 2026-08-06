@@ -206,7 +206,7 @@ export default function AddonServices({ account }: Props) {
                 <AddressInput ready={mapsReady} value={rideFrom} onChange={setRideFrom} placeholder="출발지 (예: 인천공항)" className={inp} />
                 <AddressInput ready={mapsReady} value={rideTo} onChange={setRideTo} placeholder="도착지 (예: 서울대병원)" className={inp} />
                 <input type="date" value={rideDate} onChange={(e) => setRideDate(e.target.value)} className={inp} />
-                <input type="time" value={rideTime} onChange={(e) => setRideTime(e.target.value)} className={inp} />
+                <input type="time" step={300} value={rideTime} onChange={(e) => setRideTime(e.target.value)} className={inp} />
               </div>
             </>
           ) : (
@@ -228,7 +228,7 @@ export default function AddonServices({ account }: Props) {
               <AddressInput ready={mapsReady} value={rideFrom} onChange={setRideFrom} placeholder="픽업 장소 (예: 인천국제공항 제1터미널)" className={inp} />
               <div className="grid grid-cols-2 gap-2">
                 <input type="date" value={rideDate} onChange={(e) => setRideDate(e.target.value)} className={inp} />
-                <input type="time" value={rideTime} onChange={(e) => setRideTime(e.target.value)} className={inp} />
+                <input type="time" step={300} value={rideTime} onChange={(e) => setRideTime(e.target.value)} className={inp} />
               </div>
             </>
           )}
@@ -242,7 +242,7 @@ export default function AddonServices({ account }: Props) {
           <input value={lang} onChange={(e) => setLang(e.target.value)} placeholder="언어 (예: 베트남어)" className={inp} />
           <input type="number" min={1} step={0.5} value={interpHours} onChange={(e) => setInterpHours(e.target.value)} placeholder="예상 시간 (시간)" className={inp} />
           <input type="date" value={interpDate} onChange={(e) => setInterpDate(e.target.value)} className={inp} />
-          <input type="time" value={interpTime} onChange={(e) => setInterpTime(e.target.value)} className={inp} />
+          <input type="time" step={300} value={interpTime} onChange={(e) => setInterpTime(e.target.value)} className={inp} />
         </div>
       </ServiceCard>
 
