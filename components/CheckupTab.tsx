@@ -30,6 +30,7 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
   const [allergy, setAllergy] = useState("");
   const [arrival, setArrival] = useState("");    // 입국일 — 검진센터 일정 조율 참고(항목28)
   const [departure, setDeparture] = useState("");
+  const [colonoscopy, setColonoscopy] = useState(false); // 대장내시경 추가(직접 방문 무료, 항목29)
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [done, setDone] = useState(false); // 신청 완료 → 진료과 복귀 안내
@@ -76,7 +77,7 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
         body: JSON.stringify({
           patient_name: account.name || account.id,
           hospital_id: sel.hospital_id,
-          program: `${sel.name} · ${sel.hospital_name}`,
+          program: `${sel.name} · ${sel.hospital_name}${colonoscopy ? " + 대장내시경(직접 무료)" : ""}`,
           quote_amount: sel.price_krw,
           contact: loadProfile(account.id).whatsapp || undefined,
           arrival_date: arrival || undefined,
@@ -88,7 +89,7 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
         }),
       });
       if (!res.ok) throw new Error();
-      setSel(null); setSlots(["", "", ""]); setConditions([]); setMeds(""); setAllergy(""); setArrival(""); setDeparture("");
+      setSel(null); setSlots(["", "", ""]); setConditions([]); setMeds(""); setAllergy(""); setArrival(""); setDeparture(""); setColonoscopy(false);
       setMsg("검진을 신청했습니다. 운영관리자·검진센터 확인 후 알려드립니다.");
       setDone(true);
       loadMine();
@@ -216,6 +217,16 @@ export default function CheckupTab({ account, onBookOther }: { account: Account;
               <input type="date" value={departure} min={arrival || undefined} onChange={(e) => setDeparture(e.target.value)} className={`${inp} flex-1`} placeholder="출국일" />
             </div>
             <p className="mt-2 text-[11px] text-gray-400">검진센터가 입국~출국일 사이에서 가능한 일정·시간을 잡아 안내해 드립니다.</p>
+          </section>
+
+          {/* 대장내시경 추가 옵션 — 직접 방문 환자는 무료(항목29) */}
+          <section>
+            <label className="flex items-center gap-2 rounded-xl border-2 border-gray-200 p-3 cursor-pointer hover:border-primary/40">
+              <input type="checkbox" checked={colonoscopy} onChange={(e) => setColonoscopy(e.target.checked)} className="h-4 w-4 accent-primary" />
+              <span className="text-sm font-bold text-gray-700">대장내시경 추가</span>
+              <span className="ml-auto text-sm font-black text-primary">무료 (직접 방문)</span>
+            </label>
+            <p className="mt-1 text-[11px] text-gray-400">직접 방문 환자에게는 대장내시경 패키지를 무료로 제공합니다.</p>
           </section>
 
           {/* 사전문진 (선택) */}
