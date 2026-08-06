@@ -24,21 +24,24 @@ type Props = {
 export default function TopBar({ account, onLogout, right }: Props) {
   const brand = BRAND[account.role];
   return (
-    <header className="border-b border-gray-100 bg-white">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-3.5">
-        <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-black text-white">
+    <header className="accent-topline sticky top-0 z-30 border-b border-black/5 bg-white/80 backdrop-blur-md">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-3">
+        <div className="flex items-center gap-2.5">
+          <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-dark text-sm font-black text-white ring-1 ring-gold/50">
             {brand.mark}
+            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-gold ring-2 ring-white" />
           </span>
-          <span className="text-lg font-black tracking-tight text-primary-dark">
-            {brand.name}
-          </span>
-          <span className="hidden text-xs text-gray-400 sm:inline">
-            {brand.sub}
+          <span className="flex flex-col leading-tight">
+            <span className="text-[15px] font-black tracking-tight text-primary-dark">
+              {brand.name}
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-dark">
+              {brand.sub}
+            </span>
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {right}
           <NotificationBell
             role={account.role}
@@ -47,7 +50,7 @@ export default function TopBar({ account, onLogout, right }: Props) {
           <button
             type="button"
             onClick={onLogout}
-            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 transition-colors hover:bg-gray-50"
+            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 transition-colors hover:border-primary/30 hover:text-primary-dark"
           >
             로그아웃
           </button>

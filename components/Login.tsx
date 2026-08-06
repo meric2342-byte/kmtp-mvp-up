@@ -107,27 +107,30 @@ export default function Login({ onLogin }: Props) {
   };
 
   const inputCls =
-    "w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary";
+    "w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-gold/10";
 
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col justify-center px-5 py-12">
-      {/* 브랜드 */}
-      <div className="mb-8 text-center">
-        <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-black text-white">
+    <div className="mx-auto flex min-h-full max-w-md flex-col justify-center px-5 py-10">
+      {/* 프리미엄 히어로 */}
+      <div className="hero-lux mb-6 overflow-hidden rounded-3xl p-7 text-center shadow-[var(--shadow-float)]">
+        <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-2xl font-black text-white ring-1 ring-gold/60 backdrop-blur">
           K
         </span>
-        <h1 className="text-2xl font-black tracking-tight text-primary-dark">
-          KMTP 환자 앱
+        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-gold-light">
+          Premium Medical Travel
+        </p>
+        <h1 className="mt-2 text-[22px] font-black leading-snug tracking-tight text-white">
+          안심 의료관광,<br />견적부터 귀국까지
         </h1>
-        <p className="mt-1.5 text-sm text-gray-500">
-          {mode === "login" ? "로그인" : "환자 회원가입"}
+        <p className="mt-2 text-sm text-white/70">
+          {mode === "login" ? "로그인하고 내 여정을 이어가세요" : "회원가입하고 시작하세요"}
         </p>
       </div>
 
       {mode === "login" ? (
         <form
           onSubmit={doLogin}
-          className="flex flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-6"
+          className="card-premium flex flex-col gap-4 p-6"
         >
           <div>
             <label className="mb-1 block text-xs font-semibold text-gray-600">
@@ -165,7 +168,7 @@ export default function Login({ onLogin }: Props) {
           <button
             type="submit"
             disabled={busy}
-            className="mt-1 rounded-xl bg-primary py-3 font-bold text-white transition-colors hover:bg-primary-dark disabled:bg-gray-300"
+            className="btn-primary-lux mt-1 py-3 text-[15px] disabled:opacity-50"
           >
             {busy ? "확인 중…" : "로그인"}
           </button>
@@ -184,7 +187,7 @@ export default function Login({ onLogin }: Props) {
       ) : (
         <form
           onSubmit={doSignup}
-          className="flex flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-6"
+          className="card-premium flex flex-col gap-4 p-6"
         >
           <div>
             <label className="mb-1 block text-xs font-semibold text-gray-600">
@@ -314,7 +317,7 @@ export default function Login({ onLogin }: Props) {
           <button
             type="submit"
             disabled={busy}
-            className="mt-1 rounded-xl bg-primary py-3 font-bold text-white transition-colors hover:bg-primary-dark disabled:bg-gray-300"
+            className="btn-primary-lux mt-1 py-3 text-[15px] disabled:opacity-50"
           >
             {busy ? "가입 중…" : "회원가입하고 시작하기"}
           </button>

@@ -147,7 +147,7 @@ export default function PatientApp({ account, onLogout }: Props) {
 
       <main className="mx-auto max-w-3xl px-5 py-8">
         {/* 탭 */}
-        <div className="mb-8 flex gap-1 rounded-xl bg-gray-100 p-1">
+        <div className="mb-8 flex gap-1 rounded-2xl border border-black/5 bg-white/70 p-1.5 shadow-[var(--shadow-card)] backdrop-blur">
           {(
             [
               { key: "journey", label: "내 여정" },
@@ -161,13 +161,16 @@ export default function PatientApp({ account, onLogout }: Props) {
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
-              className={`flex-1 rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+              className={`relative flex-1 rounded-xl px-3 py-2.5 text-sm font-bold transition-all ${
                 tab === t.key
-                  ? "bg-white text-primary-dark shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-gradient-to-br from-primary to-primary-dark text-white shadow-[0_6px_16px_-8px_rgba(13,58,62,0.6)]"
+                  : "text-gray-500 hover:bg-primary-light/50 hover:text-primary-dark"
               }`}
             >
               {t.label}
+              {tab === t.key && (
+                <span className="absolute bottom-1 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-gold" />
+              )}
             </button>
           ))}
         </div>
