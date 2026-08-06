@@ -244,6 +244,11 @@ export default function PatientJourney({
               <h3 className="text-sm font-bold text-gray-700">픽업 안내</h3>
               {activeTransfer ? (
                 <div className="mt-2 text-sm text-gray-600">
+                  {activeTransfer.driver_photo && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={activeTransfer.driver_photo} alt="기사 사진"
+                      className="mb-2 h-16 w-16 rounded-xl border border-gray-200 object-cover" />
+                  )}
                   <p>
                     🚐 {TRANSFER_LABEL[activeTransfer.type] ?? activeTransfer.type}
                   </p>

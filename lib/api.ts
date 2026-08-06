@@ -66,6 +66,7 @@ export type Transfer = {
   pickup_scheduled: string | null;
   driver_arrived: string | null;
   boarded: string | null;
+  driver_photo: string | null;
   status: string;
 };
 

@@ -154,6 +154,7 @@ class TransferCreate(BaseModel):
     car_number: Optional[str] = None
     gate: Optional[str] = None
     pickup_scheduled: Optional[str] = None
+    driver_photo: Optional[str] = None  # 기사 사진 URL(항목6: 공항도착 시 사진·전화 전달)
 
 
 class InterpreterIn(BaseModel):
@@ -387,15 +388,15 @@ def create_transfer(body: TransferCreate):
     ).fetchone()
     if row:
         conn.execute(
-            "UPDATE transfers SET driver_name=?, driver_phone=?, car_number=?, gate=?, pickup_scheduled=? WHERE id=?",
-            (body.driver_name, body.driver_phone, body.car_number, body.gate, body.pickup_scheduled, row["id"]),
+            "UPDATE transfers SET driver_name=?, driver_phone=?, car_number=?, gate=?, pickup_scheduled=?, driver_photo=? WHERE id=?",
+            (body.driver_name, body.driver_phone, body.car_number, body.gate, body.pickup_scheduled, body.driver_photo, row["id"]),
         )
         tid = row["id"]
     else:
         cur = conn.execute(
-            "INSERT INTO transfers (patient_id, type, driver_name, driver_phone, car_number, gate, pickup_scheduled, status) "
-            "VALUES (?,?,?,?,?,?,?, 'scheduled')",
-            (body.patient_id, body.type, body.driver_name, body.driver_phone, body.car_number, body.gate, body.pickup_scheduled),
+            "INSERT INTO transfers (patient_id, type, driver_name, driver_phone, car_number, gate, pickup_scheduled, driver_photo, status) "
+            "VALUES (?,?,?,?,?,?,?,?, 'scheduled')",
+            (body.patient_id, body.type, body.driver_name, body.driver_phone, body.car_number, body.gate, body.pickup_scheduled, body.driver_photo),
         )
         tid = cur.lastrowid
     conn.commit()

@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS transfers (
     pickup_scheduled TEXT,         -- 픽업 예정 시각
     driver_arrived TEXT,           -- 기사 도착 시각
     boarded TEXT,                  -- 탑승 완료 시각
+    driver_photo TEXT,             -- 기사 사진 URL(항목6)
     status TEXT DEFAULT 'scheduled'
 );
 
@@ -178,6 +179,9 @@ def init_db(reset: bool = False) -> None:
     tcols = [r[1] for r in conn.execute("PRAGMA table_info(transfers)")]
     if "gate" not in tcols:
         conn.execute("ALTER TABLE transfers ADD COLUMN gate TEXT")
+        conn.commit()
+    if "driver_photo" not in tcols:
+        conn.execute("ALTER TABLE transfers ADD COLUMN driver_photo TEXT")
         conn.commit()
 
     # 이미 시드되어 있으면 건너뜀
