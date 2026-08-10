@@ -1,14 +1,13 @@
 // ============================================================
-// 백엔드(FastAPI, localhost:8000) 호출 헬퍼
-// 환경변수 NEXT_PUBLIC_API_BASE로 주소 변경 가능 (기본 localhost:8000)
+// 백엔드(FastAPI) 호출 헬퍼
+// MVP 자체 백엔드는 Railway(kmtp-mvp-api, Postgres)로 이전(2026-08-10).
+// 환경변수 NEXT_PUBLIC_API_BASE로 덮어쓸 수 있고, 기본 폴백도 새 Railway 주소.
 // ============================================================
 
 export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_BASE ?? "https://kmtp-mvp-api-production.up.railway.app";
 
-// 검진(/checkup)·부가서비스 요청은 항상 b2b 운영 백엔드(에이전시 관리, Railway)로 보냅니다.
-// mvp 자체 인증/여정(API_BASE, Render)과 데이터가 갈리지 않도록 단일 백엔드로 통일.
-// (NEXT_PUBLIC_API_BASE 로 덮어쓰지 않음 — 그 변수는 Render 전용)
+// 검진(/checkup)·부가서비스 요청은 b2b 운영 백엔드(에이전시 관리)로 보냅니다.
 export const B2B_API_BASE = "https://kmtp-b2b-api-production.up.railway.app";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
