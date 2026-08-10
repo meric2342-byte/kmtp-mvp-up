@@ -56,7 +56,9 @@ class _PgConn:
 
     def execute(self, sql: str, params=()):
         from psycopg.rows import dict_row
-        s = sql.replace("?", "%s")
+        # psycopg는 쿼리문의 리터럴 %(LIKE 패턴 등)를 플레이스홀더로 오인 → %%로 이스케이프.
+        # 원본 SQLite SQL엔 %s가 없으므로(플레이스홀더는 ?) 먼저 %를 이중화한 뒤 ?→%s 변환.
+        s = sql.replace("%", "%%").replace("?", "%s")
         up = s.strip().upper()
         if up.startswith("PRAGMA"):
             return _PgCursor()
