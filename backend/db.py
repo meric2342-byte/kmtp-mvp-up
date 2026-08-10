@@ -7,10 +7,98 @@ KMTP 백엔드 — SQLite 데이터베이스 (스키마 + 시드)
 """
 
 import os
+import re
 import sqlite3
 from datetime import datetime, timedelta
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "kmtp.db")
+
+# DATABASE_URL 있으면 PostgreSQL(영구·동시성 안전), 없으면 SQLite(로컬·기존 동작 그대로).
+DATABASE_URL = os.getenv("DATABASE_URL")
+IS_PG = bool(DATABASE_URL)
+
+# SERIAL id를 가진 테이블(INSERT 시 lastrowid용 RETURNING id 필요). 나머지는 TEXT PK/복합키.
+_SERIAL_TABLES = {
+    "appointments", "transfers", "journey_events", "notifications",
+    "recovery_monitoring", "satisfaction", "interpreters", "patient_registration",
+}
+
+
+# ═══════════════════════════════════════════════════════════════
+# PostgreSQL 어댑터 — conn/cursor를 sqlite3처럼 보이게 (DATABASE_URL 있을 때만)
+#  · ? → %s,  PRAGMA → no-op,  INSERT OR IGNORE → ON CONFLICT DO NOTHING
+#  · SERIAL 테이블 INSERT엔 RETURNING id 붙여 lastrowid 채움
+#  · row["col"] 접근(dict_row), executescript/executemany 지원
+# ═══════════════════════════════════════════════════════════════
+class _PgCursor:
+    def __init__(self, cur=None, last_id=None):
+        self._cur = cur
+        self.lastrowid = last_id
+
+    def fetchone(self):
+        return self._cur.fetchone() if self._cur else None
+
+    def fetchall(self):
+        return self._cur.fetchall() if self._cur else []
+
+    def __iter__(self):
+        return iter(self.fetchall())
+
+
+def _table_of(up_sql: str) -> str:
+    m = re.search(r"INSERT\s+(?:OR\s+IGNORE\s+)?INTO\s+([A-Za-z_]+)", up_sql, re.IGNORECASE)
+    return m.group(1).lower() if m else ""
+
+
+class _PgConn:
+    def __init__(self, raw):
+        self._conn = raw
+
+    def execute(self, sql: str, params=()):
+        from psycopg.rows import dict_row
+        s = sql.replace("?", "%s")
+        up = s.strip().upper()
+        if up.startswith("PRAGMA"):
+            return _PgCursor()
+        conflict = False
+        if up.startswith("INSERT OR IGNORE"):
+            s = re.sub(r"^\s*INSERT\s+OR\s+IGNORE", "INSERT", s, flags=re.IGNORECASE)
+            conflict = True
+            up = s.strip().upper()
+        cur = self._conn.cursor(row_factory=dict_row)
+        if up.startswith("INSERT"):
+            table = _table_of(s)
+            if conflict:
+                s = s.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
+            if table in _SERIAL_TABLES and "RETURNING" not in up:
+                s = s.rstrip().rstrip(";") + " RETURNING id"
+                cur.execute(s, params or ())
+                row = cur.fetchone()
+                return _PgCursor(cur, row["id"] if row else None)
+            cur.execute(s, params or ())
+            return _PgCursor(cur)
+        cur.execute(s, params or ())
+        return _PgCursor(cur)
+
+    def executemany(self, sql: str, seq):
+        for params in seq:
+            self.execute(sql, params)
+        return _PgCursor()
+
+    def executescript(self, script: str):
+        for stmt in script.split(";"):
+            if stmt.strip():
+                self.execute(stmt)
+        return _PgCursor()
+
+    def commit(self):
+        try:
+            self._conn.commit()
+        except Exception:
+            pass
+
+    def close(self):
+        self._conn.close()
 
 # ------------------------------------------------------------
 # 환자 여정 9단계 (작업 4 타임라인과 동일 순서)
@@ -29,10 +117,13 @@ STAGES = [
 ]
 
 
-def get_conn() -> sqlite3.Connection:
-    # isolation_level=None(자동커밋): 각 문장이 즉시 커밋돼 '장기 쓰기 트랜잭션' 자체가 없다.
-    #   → 연결이 실수로 안 닫혀도 쓰기 락이 남지 않아 'database is locked' 누수를 근본 차단.
-    # WAL: 폴링 읽기가 쓰기를 막지 않도록. busy_timeout: 순간 경합 시 대기.
+def get_conn():
+    """DATABASE_URL 있으면 PostgreSQL, 없으면 SQLite(자동커밋). 라우터 API는 동일."""
+    if IS_PG:
+        import psycopg
+        raw = psycopg.connect(DATABASE_URL, autocommit=True)
+        return _PgConn(raw)
+    # isolation_level=None(자동커밋): 장기 쓰기 트랜잭션 제거 → 'database is locked' 누수 차단.
     conn = sqlite3.connect(DB_PATH, timeout=30, isolation_level=None)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -157,6 +248,60 @@ CREATE TABLE IF NOT EXISTS patient_registration (
 );
 """
 
+# PostgreSQL 스키마 — SQLite와 동일 구조, AUTOINCREMENT→SERIAL. (DATABASE_URL 있을 때만)
+SCHEMA_PG = """
+CREATE TABLE IF NOT EXISTS agents (
+    id TEXT PRIMARY KEY, agency_name TEXT NOT NULL, contact TEXT
+);
+CREATE TABLE IF NOT EXISTS hospitals (
+    id TEXT PRIMARY KEY, name TEXT NOT NULL, contact TEXT
+);
+CREATE TABLE IF NOT EXISTS patients (
+    id TEXT PRIMARY KEY, name TEXT NOT NULL, nationality TEXT, department TEXT,
+    agent_id TEXT REFERENCES agents(id), hospital_id TEXT REFERENCES hospitals(id)
+);
+CREATE TABLE IF NOT EXISTS appointments (
+    id SERIAL PRIMARY KEY, patient_id TEXT REFERENCES patients(id),
+    hospital_id TEXT REFERENCES hospitals(id), scheduled_at TEXT,
+    actual_start TEXT, actual_end TEXT, status TEXT DEFAULT 'scheduled'
+);
+CREATE TABLE IF NOT EXISTS transfers (
+    id SERIAL PRIMARY KEY, patient_id TEXT REFERENCES patients(id), type TEXT,
+    driver_name TEXT, driver_phone TEXT, car_number TEXT, gate TEXT,
+    pickup_scheduled TEXT, driver_arrived TEXT, boarded TEXT, driver_photo TEXT,
+    status TEXT DEFAULT 'scheduled'
+);
+CREATE TABLE IF NOT EXISTS journey_events (
+    id SERIAL PRIMARY KEY, patient_id TEXT REFERENCES patients(id),
+    stage TEXT, occurred_at TEXT, note TEXT
+);
+CREATE TABLE IF NOT EXISTS accounts (
+    login_id TEXT PRIMARY KEY, password TEXT NOT NULL, role TEXT NOT NULL,
+    name TEXT, sub TEXT, ref_id TEXT, created_at TEXT
+);
+CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY, patient_id TEXT REFERENCES patients(id),
+    recipient_role TEXT, channel TEXT DEFAULT 'in_app', content TEXT,
+    sent_at TEXT, read INTEGER DEFAULT 0, sender TEXT DEFAULT 'KMTP 케어'
+);
+CREATE TABLE IF NOT EXISTS recovery_monitoring (
+    id SERIAL PRIMARY KEY, patient_id TEXT REFERENCES patients(id),
+    measured_at TEXT, metric TEXT, value TEXT, source TEXT DEFAULT 'seers'
+);
+CREATE TABLE IF NOT EXISTS satisfaction (
+    id SERIAL PRIMARY KEY, patient_id TEXT REFERENCES patients(id),
+    phase TEXT, score INTEGER, comment TEXT
+);
+CREATE TABLE IF NOT EXISTS interpreters (
+    id SERIAL PRIMARY KEY, patient_id TEXT REFERENCES patients(id),
+    name TEXT, phone TEXT, lang TEXT, note TEXT, created_at TEXT
+);
+CREATE TABLE IF NOT EXISTS patient_registration (
+    id SERIAL PRIMARY KEY, patient_id TEXT REFERENCES patients(id),
+    reg_no TEXT, hospital TEXT, created_at TEXT
+);
+"""
+
 
 def _iso(dt: datetime) -> str:
     return dt.replace(microsecond=0).isoformat()
@@ -164,27 +309,37 @@ def _iso(dt: datetime) -> str:
 
 def init_db(reset: bool = False) -> None:
     """테이블 생성 + (비어 있으면) 샘플 데이터 시드."""
-    if reset and os.path.exists(DB_PATH):
+    if reset and not IS_PG and os.path.exists(DB_PATH):
         os.remove(DB_PATH)
 
     conn = get_conn()
-    conn.executescript(SCHEMA)
-    conn.commit()
-
-    # 가벼운 마이그레이션: notifications.sender 컬럼이 없으면 추가
-    cols = [r[1] for r in conn.execute("PRAGMA table_info(notifications)")]
-    if "sender" not in cols:
-        conn.execute("ALTER TABLE notifications ADD COLUMN sender TEXT")
+    if IS_PG:
+        conn.executescript(SCHEMA_PG)
+        # PG 가벼운 마이그레이션(기존 DB에 컬럼 보강) — 이미 있으면 무시
+        for stmt in (
+            "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS sender TEXT",
+            "ALTER TABLE transfers ADD COLUMN IF NOT EXISTS gate TEXT",
+            "ALTER TABLE transfers ADD COLUMN IF NOT EXISTS driver_photo TEXT",
+        ):
+            try:
+                conn.execute(stmt)
+            except Exception:
+                pass
+    else:
+        conn.executescript(SCHEMA)
         conn.commit()
-
-    # 가벼운 마이그레이션: transfers.gate(공항 픽업 게이트) 컬럼이 없으면 추가
-    tcols = [r[1] for r in conn.execute("PRAGMA table_info(transfers)")]
-    if "gate" not in tcols:
-        conn.execute("ALTER TABLE transfers ADD COLUMN gate TEXT")
-        conn.commit()
-    if "driver_photo" not in tcols:
-        conn.execute("ALTER TABLE transfers ADD COLUMN driver_photo TEXT")
-        conn.commit()
+        # 가벼운 마이그레이션(SQLite): PRAGMA로 컬럼 유무 확인 후 추가
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(notifications)")]
+        if "sender" not in cols:
+            conn.execute("ALTER TABLE notifications ADD COLUMN sender TEXT")
+            conn.commit()
+        tcols = [r[1] for r in conn.execute("PRAGMA table_info(transfers)")]
+        if "gate" not in tcols:
+            conn.execute("ALTER TABLE transfers ADD COLUMN gate TEXT")
+            conn.commit()
+        if "driver_photo" not in tcols:
+            conn.execute("ALTER TABLE transfers ADD COLUMN driver_photo TEXT")
+            conn.commit()
 
     # 이미 시드되어 있으면 건너뜀
     already = conn.execute("SELECT COUNT(*) AS n FROM patients").fetchone()["n"]
