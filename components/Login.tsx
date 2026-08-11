@@ -70,6 +70,12 @@ export default function Login({ onLogin }: Props) {
 
   const doSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    // WhatsApp 번호 필수 — 픽업·검진·여정 실시간 안내(WhatsApp)의 연동 키.
+    const waDigits = (profile.whatsapp || "").replace(/[^0-9]/g, "");
+    if (waDigits.length < 8) {
+      setError("WhatsApp 번호를 국가코드 포함해 정확히 입력해 주세요. (실시간 안내 연동에 필요)");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -293,19 +299,20 @@ export default function Login({ onLogin }: Props) {
             />
           </div>
 
-          {/* 왓츠앱 번호 — 실시간 안내(픽업·검진·여정) 연락 채널 */}
+          {/* 왓츠앱 번호 — 실시간 안내(픽업·검진·여정) 연락 채널 (필수) */}
           <div>
             <label className="mb-1 block text-xs font-semibold text-gray-600">
-              WhatsApp 번호 (국가코드 포함)
+              WhatsApp 번호 (국가코드 포함) <span className="text-primary">*</span>
             </label>
             <input
               type="tel"
+              required
               value={profile.whatsapp}
               onChange={(e) => setP("whatsapp", e.target.value)}
               placeholder="예: +8210xxxxxxxx"
               className={inputCls}
             />
-            <p className="mt-1 text-[11px] text-gray-400">픽업·검진·여정 안내를 실시간으로 받는 채널입니다.</p>
+            <p className="mt-1 text-[11px] text-gray-400">픽업·검진·여정 안내를 이 WhatsApp으로 실시간 전송합니다. (필수)</p>
           </div>
 
           {error && (
