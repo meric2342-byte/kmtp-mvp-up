@@ -38,20 +38,22 @@ export default function Home() {
   // 환자 전용 — 운영자 계정으로 들어오면 안내만
   if (account.role !== "patient") {
     return (
-      <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center gap-3 px-5 py-16 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-black text-white">
-          K
-        </span>
-        <h1 className="text-xl font-black text-primary-dark">환자 전용 앱입니다</h1>
-        <p className="text-sm text-gray-500">
-          에이전시·병원·운영자는 별도 운영 콘솔(관리 사이트)을 이용해 주세요.
-        </p>
-        <button
-          onClick={logout}
-          className="mt-2 rounded-xl border-2 border-gray-200 px-6 py-2.5 text-sm font-bold text-gray-600 hover:border-primary/40"
-        >
-          ← 로그아웃
-        </button>
+      <div className="mx-auto flex min-h-full max-w-md items-center px-5 py-16">
+        <div className="card-premium accent-topline flex w-full flex-col items-center gap-3 px-6 py-10 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-dark text-lg font-black text-white ring-1 ring-gold/50">
+            K
+          </span>
+          <h1 className="text-xl font-black text-primary-dark">환자 전용 앱입니다</h1>
+          <p className="text-sm text-gray-500">
+            에이전시·병원·운영자는 별도 운영 콘솔(관리 사이트)을 이용해 주세요.
+          </p>
+          <button
+            onClick={logout}
+            className="btn-primary-lux mt-3 px-6 py-2.5 text-sm"
+          >
+            ← 로그아웃
+          </button>
+        </div>
       </div>
     );
   }

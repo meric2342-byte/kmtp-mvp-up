@@ -105,3 +105,48 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 
 /* 골드 가는 상단 라인(브랜드 악센트) */
 .accent-topline { box-shadow: inset 0 3px 0 0 var(--color-gold); }
+
+/* ── 리디자인 2차: 랜딩·스테퍼 보강 유틸 ─────────────────────── */
+
+/* 골드 그라데이션 텍스트 (헤드라인 강조) */
+.text-gold-gradient {
+  background: linear-gradient(120deg, #f3e8d5 0%, #d9b77c 45%, #b8935a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 다크 배경 위 글래스 패널 */
+.glass-dark {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* 히어로 배경의 은은한 격자 패턴 */
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
+}
+
+/* 골드 헤어라인 구분선 */
+.gold-rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(184, 147, 90, 0.7), transparent);
+}
+
+/* 등장 애니메이션 (순차 지연은 style로 animation-delay 지정) */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up { animation: none; }
+}
